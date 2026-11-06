@@ -98,7 +98,7 @@
           id,
           name,
           placeholder: field.placeholder,
-          autocomplete: { name: "name", email: "email", tel: "tel", company: "organization" }[field.id],
+          autocomplete: { name: "name", email: "email", tel: "tel" }[field.id],
         });
     }
   }

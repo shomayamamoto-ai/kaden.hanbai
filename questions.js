@@ -18,7 +18,6 @@
     title: "お客様情報",
     fields: [
       { id: "name", label: "お名前", type: "text", required: true, placeholder: "例:山田 太郎" },
-      { id: "company", label: "会社名・部署名・役職", type: "text", placeholder: "個人のお客様は空欄で構いません" },
       { id: "email", label: "メールアドレス", type: "email", required: true, placeholder: "例:taro@example.com" },
       { id: "tel", label: "電話番号", type: "tel", placeholder: "例:090-1234-5678" },
       {
