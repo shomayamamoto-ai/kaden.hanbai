@@ -6,7 +6,7 @@
 // GAS_URL の "" の中に貼り付けてください。
 // 手順は docs/SETUP.md を参照してください。
 window.HEARING_CONFIG = {
-  GAS_URL: "",
+  GAS_URL: "https://script.google.com/macros/s/AKfycbw40t7II-ZFAFSuYyEwSudzW_U6wa_h1rWWYuPJz_rRvyLrq7FdUj7_YW9Fl7CKZYwXzQ/exec",
 
   // フォーム上部・完了画面に表示する店舗名(空欄なら非表示)
   SHOP_NAME: "",
