@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>買い替えヒアリングシート</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="sheet">
+    <header class="sheet-header">
+      <p class="shop-name" id="shopName" hidden></p>
+      <h1 id="formTitle">買い替えヒアリングシート</h1>
+      <p class="lead">
+        最適な機種をご提案・選定するため、<wbr>以下の項目について<wbr>ご回答をお願いいたします。<br>
+        わかる範囲で構いませんので、<wbr>ご記入ください。
+      </p>
+    </header>
+
+    <nav class="switcher" aria-label="ヒアリングシートの種類">
+      <p class="switcher-label">ご相談の製品を選んでください</p>
+      <div class="switcher-buttons" role="tablist">
+        <button type="button" role="tab" data-form="pc">
+          <span class="icon" aria-hidden="true">💻</span>パソコン
+        </button>
+        <button type="button" role="tab" data-form="phone">
+          <span class="icon" aria-hidden="true">📱</span>スマートフォン
+        </button>
+      </div>
+    </nav>
+
+    <form id="hearingForm" novalidate>
+      <div id="formBody"></div>
+
+      <!-- スパム対策(人には見えない欄。入力があれば送信しない) -->
+      <div class="hp" aria-hidden="true">
+        <label>この欄は空のままにしてください<input type="text" name="_hp" tabindex="-1" autocomplete="off"></label>
+      </div>
+
+      <div class="agree">
+        <label>
+          <input type="checkbox" id="agree" required>
+          入力内容を、<wbr>機種のご提案・ご連絡の目的で<wbr>利用することに同意します。
+        </label>
+      </div>
+
+      <p class="error-summary" id="errorSummary" role="alert" hidden></p>
+
+      <div class="actions">
+        <button type="submit" class="btn-primary" id="submitBtn">この内容で送信する</button>
+        <button type="button" class="btn-secondary" id="printBtn">印刷・PDFで保存</button>
+      </div>
+    </form>
+
+    <section class="done" id="doneMessage" hidden tabindex="-1">
+      <h2>送信が完了しました</h2>
+      <p>
+        ご回答ありがとうございました。<br>
+        内容を確認のうえ、<wbr>担当者よりご連絡いたします。
+      </p>
+      <button type="button" class="btn-secondary" id="againBtn">別の内容で入力する</button>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
