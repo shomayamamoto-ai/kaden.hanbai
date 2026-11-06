@@ -37,8 +37,8 @@ body {
 
 .sheet-header { text-align: center; margin-bottom: 24px; }
 .shop-name { margin: 0 0 4px; color: var(--muted); font-size: 14px; }
-h1 { margin: 0 0 12px; color: var(--heading); font-size: 28px; line-height: 1.4; }
-.lead { margin: 0; font-size: 14px; }
+h1 { word-break: keep-all; overflow-wrap: anywhere; margin: 0 0 12px; color: var(--heading); font-size: 28px; line-height: 1.4; }
+.lead { margin: 0; font-size: 14px; word-break: keep-all; overflow-wrap: anywhere; }
 
 /* 製品の切り替え */
 .switcher { margin: 0 0 28px; text-align: center; }
@@ -118,6 +118,9 @@ textarea { resize: vertical; }
 input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
 
 .choices { display: flex; flex-direction: column; gap: 4px; }
+.choices.grid-short { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 4px 12px; }
+.choices.grid-mid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 12px; }
+.choices .other-row { grid-column: 1 / -1; }
 .choice { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; }
 .choice input { margin-top: 6px; flex-shrink: 0; width: 16px; height: 16px; }
 .other-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -174,6 +177,7 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 
   .q-table th, .q-table td { border: none; }
   .q-table th { padding: 8px 12px; }
   .actions button { width: 100%; }
+  .choices.grid-short { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .btn-primary { min-width: 0; }
 }
 

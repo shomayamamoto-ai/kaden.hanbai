@@ -48,7 +48,10 @@
 
       case "radio":
       case "checkbox": {
-        const wrap = el("div", { class: "choices", role: field.type === "radio" ? "radiogroup" : "group" });
+        // 短い選択肢だけの項目は、横に並べて縦長にならないようにする
+        const longest = Math.max(...field.options.map((o) => o.length));
+        const cls = "choices" + (longest <= 8 ? " grid-short" : longest <= 14 ? " grid-mid" : "");
+        const wrap = el("div", { class: cls, role: field.type === "radio" ? "radiogroup" : "group" });
         field.options.forEach((opt) => {
           wrap.appendChild(
             el("label", { class: "choice" }, [
@@ -133,7 +136,12 @@
   function selectForm(key) {
     const def = forms[key] || forms.pc;
     current = def;
-    els.title.textContent = def.title;
+    // 「スマートフォン/買い替え…」の切れ目でだけ改行されるようにする
+    els.title.textContent = "";
+    def.title.split("買い替え").forEach((part, i) => {
+      if (i > 0) { els.title.appendChild(document.createElement("wbr")); part = "買い替え" + part; }
+      els.title.appendChild(document.createTextNode(part));
+    });
     document.title = def.title;
     els.tabs.forEach((b) => b.setAttribute("aria-selected", String(b.dataset.form === def.key)));
     renderForm(def);
