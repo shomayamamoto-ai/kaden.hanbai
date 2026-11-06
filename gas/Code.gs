@@ -58,24 +58,37 @@ function saveToSheet_(data) {
   var sheetName = data.formName || data.formType; // 「パソコン」「スマートフォン」でシートを分ける
   var sheet = ss.getSheetByName(sheetName) || ss.insertSheet(sheetName);
 
-  var headers = ["受信日時", "受付番号", "対応状況"].concat(data.answers.map(function (a) { return a.label; }));
-  var row = [new Date(), data.receiptNo || "", "未対応"].concat(data.answers.map(function (a) { return a.value; }));
+  // 項目名 → 値(選んだ商品によって項目が増減するため、見出し名で列を探して書き込む)
+  var values = { "受信日時": new Date(), "受付番号": data.receiptNo || "", "対応状況": "未対応" };
+  var order = ["受信日時", "受付番号", "対応状況"];
+  data.answers.forEach(function (a) {
+    values[a.label] = a.value;
+    order.push(a.label);
+  });
 
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(headers);
-    sheet.getRange(1, 1, 1, headers.length).setFontWeight("bold").setBackground("#ebeff0");
-    sheet.setFrozenRows(1);
-  } else {
-    // 質問項目が増えた場合は見出しを更新
-    var current = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0];
-    if (current.join("|") !== headers.join("|")) {
-      sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold").setBackground("#ebeff0");
+  var headers = sheet.getLastRow() === 0
+    ? []
+    : sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(String);
+
+  // まだ列がない項目は、右端に見出しを追加する
+  var added = false;
+  order.forEach(function (label) {
+    if (headers.indexOf(label) === -1) {
+      headers.push(label);
+      added = true;
     }
+  });
+  if (added) {
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold").setBackground("#ebeff0");
+    sheet.setFrozenRows(1);
   }
-  // 先頭が「=」などの場合に数式として扱われないようにする
-  sheet.appendRow(row.map(function (v) {
+
+  var row = headers.map(function (label) {
+    var v = values.hasOwnProperty(label) ? values[label] : "";
+    // 先頭が「=」などの場合に数式として扱われないようにする
     return typeof v === "string" && /^[=+\-@]/.test(v) ? "'" + v : v;
-  }));
+  });
+  sheet.appendRow(row);
 }
 
 function formatBody_(data) {

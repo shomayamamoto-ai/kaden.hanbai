@@ -12,6 +12,8 @@
 // 入力の手間を減らすため、できるだけ radio / checkbox で作っています。
 
 (function () {
+  const FOLLOWUPS = window.ACCESSORY_FOLLOWUPS;
+
   // ---------- 共通の選択肢 ----------
   const QUANTITY = ["1台", "2台", "3台以上"];
   const DEADLINE = ["できるだけ早く", "1週間以内", "1か月以内", "2〜3か月以内", "急ぎではない"];
@@ -205,7 +207,10 @@
             label: "一緒に購入したいもの",
             note: "複数選択可",
             type: "checkbox",
-            options: ["マウス", "キーボード", "モニター", "プリンター", "外付けHDD・USBメモリ", "Wi-Fiルーター", "パソコン用バッグ・ケース"],
+            description: "選んだ商品について、すぐ下に追加の質問が表示されます(わかる範囲でお答えください)。",
+            // 商品の一覧と追加質問は accessories.js で管理しています
+            options: Object.keys(FOLLOWUPS.pc),
+            followUps: FOLLOWUPS.pc,
             other: true,
           },
           {
@@ -377,7 +382,10 @@
             label: "一緒に購入したいもの",
             note: "複数選択可",
             type: "checkbox",
-            options: ["ケース・カバー", "保護フィルム", "充電器・ケーブル", "モバイルバッテリー", "ワイヤレスイヤホン", "スマートウォッチ"],
+            description: "選んだ商品について、すぐ下に追加の質問が表示されます(わかる範囲でお答えください)。",
+            // 商品の一覧と追加質問は accessories.js で管理しています
+            options: Object.keys(FOLLOWUPS.phone),
+            followUps: FOLLOWUPS.phone,
             other: true,
           },
           {

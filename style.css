@@ -137,6 +137,22 @@ h1 { word-break: keep-all; overflow-wrap: anywhere; margin: 0 0 12px; color: var
 
 .description { margin: 0 0 8px; font-size: 14px; }
 
+/* 「一緒に購入したいもの」の追加質問 */
+.q-table tr.followup th,
+.q-table tr.followup td { background: var(--selected-bg); border-left: 4px solid var(--accent); }
+.q-table tr.followup td { border-left: 1px solid var(--border); }
+tr.followup th span { display: block; }
+.followup-tag {
+  display: inline-block !important; margin-bottom: 2px; padding: 0 6px;
+  font-size: 11px; color: #fff; background: var(--accent); border-radius: 3px;
+}
+.sub-q + .sub-q { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
+.sub-label { margin: 0 0 4px; font-size: 14px; font-weight: bold; }
+.note-inline { font-weight: normal; font-size: 12px; color: var(--muted); }
+tr.followup:not([hidden]) { animation: fadein .25s ease; }
+@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { tr.followup:not([hidden]) { animation: none; } }
+
 /* 入力欄 */
 input[type="text"],
 input[type="email"],
@@ -269,6 +285,9 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 
   .q-table tr:last-child { border-bottom: 1px solid var(--border); }
   .q-table th, .q-table td { border: none; }
   .q-table th { padding: 8px 12px; }
+  .q-table tr.followup { border-left: 4px solid var(--accent); }
+  .q-table tr.followup th, .q-table tr.followup td { border-left: none; }
+  tr.followup th span { display: inline; margin-right: 6px; }
   .actions button { width: 100%; }
   .choices.grid-short { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .btn-primary { min-width: 0; }

@@ -67,6 +67,31 @@
     return current.sections.flatMap((s) => s.fields);
   }
 
+  // 「一緒に購入したいもの」で選ばれた商品の追加質問(画面に出ているものだけ)
+  function followUpFieldsOf(field) {
+    if (!field.followUps) return [];
+    const checked = Array.from(els.form.querySelectorAll(`input[name="${fieldName(field)}"]:checked`)).map((c) => c.value);
+    return field.options.flatMap((opt, oi) =>
+      checked.includes(opt) ? followUpsFor(field, opt, oi) : []
+    );
+  }
+
+  function followUpsFor(field, opt, oi) {
+    return (field.followUps[opt] || []).map((q, qi) =>
+      Object.assign({}, q, { id: `${field.id}_${oi}_${qi}`, label: `${opt}:${q.label}`, shortLabel: q.label })
+    );
+  }
+
+  // チェックの付いた商品の追加質問だけを表示する
+  function updateFollowUps() {
+    els.form.querySelectorAll("tr.followup").forEach((tr) => {
+      const box = els.form.querySelector(
+        `input[name="${tr.dataset.parent}"][value="${CSS.escape(tr.dataset.option)}"]`
+      );
+      tr.hidden = !(box && box.checked);
+    });
+  }
+
   function renderInput(field) {
     const name = fieldName(field);
 
@@ -128,6 +153,28 @@
         td.appendChild(renderInput(field));
 
         tbody.appendChild(el("tr", { "data-field": field.id }, [th, td]));
+
+        // 商品ごとの追加質問の行(チェックしたときだけ表示)
+        if (field.followUps) {
+          field.options.forEach((opt, oi) => {
+            const subs = followUpsFor(field, opt, oi);
+            if (!subs.length) return;
+            const subTd = el("td");
+            subs.forEach((sub) => {
+              const block = el("div", { class: "sub-q", "data-field": sub.id }, [
+                el("p", { class: "sub-label" }, [sub.shortLabel, sub.note ? el("span", { class: "note-inline", text: `(${sub.note})` }) : null]),
+                renderInput(sub),
+              ]);
+              subTd.appendChild(block);
+            });
+            tbody.appendChild(
+              el("tr", { class: "followup", hidden: true, "data-parent": fieldName(field), "data-option": opt }, [
+                el("th", { scope: "row" }, [el("span", { class: "followup-tag", text: "追加質問" }), el("span", { text: opt })]),
+                subTd,
+              ])
+            );
+          });
+        }
       });
 
       els.body.appendChild(el("section", { class: "section" }, [h2, el("table", { class: "q-table" }, [tbody])]));
@@ -162,6 +209,7 @@
     els.agree.checked = false;
     clearErrors();
     els.restoreNotice.hidden = !restoreDraft();
+    updateFollowUps();
     updateProgress();
 
     const url = new URL(location.href);
@@ -192,6 +240,9 @@
     current.sections.forEach((section, i) => {
       section.fields.forEach((field) => {
         answers.push({ section: `${i + 1}. ${section.title}`, id: field.id, label: field.label, value: valueOf(field) });
+        followUpFieldsOf(field).forEach((sub) => {
+          answers.push({ section: `${i + 1}. ${section.title}`, id: sub.id, label: sub.label, value: valueOf(sub) });
+        });
       });
     });
     return answers;
@@ -542,6 +593,7 @@
   }
 
   function onEdit() {
+    updateFollowUps();
     const answers = collect();
     updateProgress(answers);
     recheckErrors(answers);
