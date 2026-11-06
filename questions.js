@@ -25,7 +25,18 @@
     fields: [
       { id: "name", label: "お名前", type: "text", required: true, placeholder: "例:山田 太郎" },
       { id: "email", label: "メールアドレス", type: "email", required: true, placeholder: "例:taro@example.com" },
-      { id: "tel", label: "電話番号", type: "tel", placeholder: "例:090-1234-5678" },
+      {
+        id: "tel",
+        label: "電話番号",
+        type: "tel",
+        placeholder: "例:090-1234-5678",
+        requiredWhen: {
+          field: "contact_method",
+          value: "電話",
+          badge: "(電話でのご連絡を希望する場合は必須)",
+          message: "電話でのご連絡を希望される場合は、電話番号をご入力ください。",
+        },
+      },
       { id: "contact_method", label: "ご希望の連絡方法", type: "radio", options: ["メール", "電話", "どちらでもよい"] },
       {
         id: "contact_time",
@@ -54,7 +65,7 @@
             options: ["ご本人", "ご家族(お子さま・学生)", "ご家族(ご高齢の方)", "家族みんなで共用"],
             other: true,
           },
-          { id: "age", label: "使う方のご年代", type: "radio", options: ["10代", "20〜30代", "40〜50代", "60〜70代", "80代以上"] },
+          { id: "age", label: "使う方のご年代", type: "radio", options: ["10代", "20〜30代", "40〜50代", "60〜70代", "80代以上", "答えたくない"] },
           { id: "skill", label: "パソコンの操作", type: "radio", options: SKILL },
         ],
       },
@@ -227,7 +238,7 @@
             options: ["ご本人", "ご家族(お子さま)", "ご家族(ご高齢の方)"],
             other: true,
           },
-          { id: "age", label: "使う方のご年代", type: "radio", options: ["10歳未満", "10代", "20〜30代", "40〜50代", "60〜70代", "80代以上"] },
+          { id: "age", label: "使う方のご年代", type: "radio", options: ["10歳未満", "10代", "20〜30代", "40〜50代", "60〜70代", "80代以上", "答えたくない"] },
           { id: "skill", label: "スマホの操作", type: "radio", options: SKILL },
         ],
       },
@@ -381,6 +392,40 @@
       },
     ],
   };
+
+  // =====================================================
+  // 必須にする項目
+  // =====================================================
+  // ご提案・ご連絡に欠かせない項目だけを必須にしています。
+  // 必須の選択項目には「わからない」「相談したい」などの選択肢があるので、
+  // 詳しくないお客様でも答えられます。
+  // ここに id を足す・消すだけで、必須かどうかを切り替えられます。
+  const REQUIRED = {
+    pc: [
+      "name", "email", "contact_method",      // 連絡に必要
+      "user", "age",                          // 誰向けの提案か
+      "current_maker", "reason",              // 今の状況と、何を解決したいか
+      "pc_type", "os", "usage", "office",     // 機種選びの決め手
+      "data_transfer",                        // 当日の作業量・費用に関わる
+      "quantity", "budget", "deadline",       // 見積もりと在庫手配に必要
+    ],
+    phone: [
+      "name", "email", "contact_method",
+      "user", "age",
+      "current_maker", "current_carrier", "reason",
+      "os", "usage",
+      "carrier", "payment", "data_transfer",  // 契約手続きと費用に関わる
+      "quantity", "budget", "deadline",
+    ],
+  };
+
+  [pc, phone].forEach((form) => {
+    form.sections.forEach((section) =>
+      section.fields.forEach((field) => {
+        field.required = REQUIRED[form.key].includes(field.id);
+      })
+    );
+  });
 
   window.HEARING_FORMS = { pc, phone };
 })();

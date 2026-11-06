@@ -118,6 +118,7 @@
         const labelTarget = ["text", "email", "tel", "textarea", undefined].includes(field.type) ? fieldName(field) : null;
         th.appendChild(el(labelTarget ? "label" : "span", { for: labelTarget, text: field.label }));
         if (field.required) th.appendChild(el("span", { class: "req", text: "必須" }));
+        if (field.requiredWhen) th.appendChild(el("span", { class: "note", text: field.requiredWhen.badge }));
         if (field.note) th.appendChild(el("span", { class: "note", text: `(${field.note})` }));
 
         const td = el("td");
@@ -223,9 +224,19 @@
     current.sections.forEach((section) =>
       section.fields.forEach((field) => {
         const a = answers.find((x) => x.id === field.id);
-        if (field.required && !a.value) {
+        const choice = field.type === "radio" || field.type === "checkbox";
+        // 「電話で連絡がほしい」場合だけ電話番号を必須にする、などの条件付き必須
+        const cond = field.requiredWhen;
+        const condMet = cond && (answers.find((x) => x.id === cond.field) || {}).value === cond.value;
+        if ((field.required || condMet) && !a.value) {
           errors.push(field.id);
-          showFieldError(field.id, `${field.label}を入力してください。`);
+          showFieldError(
+            field.id,
+            condMet ? cond.message : choice ? `${field.label}を選んでください。` : `${field.label}を入力してください。`
+          );
+        } else if (choice && field.other && a.value.includes("その他(記入なし)")) {
+          errors.push(field.id);
+          showFieldError(field.id, "「その他」を選んだ場合は、内容をご記入ください。");
         } else if (field.type === "email" && a.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a.value)) {
           errors.push(field.id);
           showFieldError(field.id, "メールアドレスの形式が正しくありません。");
