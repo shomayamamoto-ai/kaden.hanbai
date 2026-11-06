@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <title>買い替えヒアリングシート</title>
-  <link rel="stylesheet" href="style.css?v=20261106b">
+  <link rel="stylesheet" href="style.css?v=20261106c">
 </head>
 <body>
   <main class="sheet">
@@ -17,55 +17,124 @@
         わかる範囲で構いませんので、<wbr>ご記入ください。<br>
         <span class="req">必須</span> の項目は、<wbr>わからない場合も<wbr>「わからない」「相談したい」を<wbr>お選びください。
       </p>
+      <ul class="badges">
+        <li>⏱ 所要時間 約3分</li>
+        <li>💾 入力内容は自動で一時保存</li>
+        <li>✅ 送信前に内容を確認できます</li>
+      </ul>
     </header>
 
-    <nav class="switcher" aria-label="ヒアリングシートの種類">
-      <p class="switcher-label">ご相談の製品を選んでください</p>
-      <div class="switcher-buttons" role="tablist">
-        <button type="button" role="tab" data-form="pc">
-          <span class="icon" aria-hidden="true">💻</span>パソコン
-        </button>
-        <button type="button" role="tab" data-form="phone">
-          <span class="icon" aria-hidden="true">📱</span>スマートフォン
-        </button>
+    <!-- ===== 入力画面 ===== -->
+    <div id="inputView">
+      <nav class="switcher" aria-label="ヒアリングシートの種類">
+        <p class="switcher-label">ご相談の製品を選んでください</p>
+        <div class="switcher-buttons" role="tablist">
+          <button type="button" role="tab" data-form="pc">
+            <span class="icon" aria-hidden="true">💻</span>パソコン
+          </button>
+          <button type="button" role="tab" data-form="phone">
+            <span class="icon" aria-hidden="true">📱</span>スマートフォン
+          </button>
+        </div>
+      </nav>
+
+      <p class="restore-notice" id="restoreNotice" hidden>
+        <span>前回の入力内容を復元しました。<wbr>続きからご記入いただけます。</span>
+        <button type="button" class="link-btn" id="clearDraftBtn">最初から入力し直す</button>
+      </p>
+
+      <!-- 画面上部に固定される進み具合のバー -->
+      <div class="progress" id="progress" aria-live="polite">
+        <div class="progress-text">
+          <span id="progressLabel">必須項目</span>
+          <strong id="progressCount">0 / 0</strong>
+        </div>
+        <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
       </div>
-    </nav>
 
-    <form id="hearingForm" novalidate>
-      <div id="formBody"></div>
+      <form id="hearingForm" novalidate>
+        <div id="formBody"></div>
 
-      <!-- スパム対策(人には見えない欄。入力があれば送信しない) -->
-      <div class="hp" aria-hidden="true">
-        <label>この欄は空のままにしてください<input type="text" name="_hp" tabindex="-1" autocomplete="off"></label>
+        <!-- スパム対策(人には見えない欄。入力があれば送信しない) -->
+        <div class="hp" aria-hidden="true">
+          <label>この欄は空のままにしてください<input type="text" name="_hp" tabindex="-1" autocomplete="off"></label>
+        </div>
+
+        <div class="agree">
+          <label>
+            <input type="checkbox" id="agree" required>
+            入力内容を、<wbr>機種のご提案・ご連絡の目的で<wbr>利用することに同意します。
+          </label>
+        </div>
+
+        <p class="error-summary" id="errorSummary" role="alert" hidden></p>
+
+        <div class="actions">
+          <button type="submit" class="btn-primary" id="confirmBtn">入力内容を確認する</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ===== 確認画面 ===== -->
+    <section class="confirm" id="confirmView" hidden tabindex="-1" aria-labelledby="confirmTitle">
+      <h2 id="confirmTitle">入力内容のご確認</h2>
+      <p class="confirm-lead">
+        以下の内容で送信します。<wbr>よろしければ<wbr>「この内容で送信する」を<wbr>押してください。
+      </p>
+      <div id="confirmBody"></div>
+      <p class="error-summary" id="sendError" role="alert" hidden></p>
+      <div class="actions">
+        <button type="button" class="btn-primary" id="submitBtn">この内容で送信する</button>
+        <button type="button" class="btn-secondary" id="backBtn">修正する</button>
+      </div>
+    </section>
+
+    <!-- ===== 送信完了画面 ===== -->
+    <section class="done" id="doneView" hidden tabindex="-1" aria-labelledby="doneTitle">
+      <div class="done-head">
+        <div class="done-check" aria-hidden="true">✓</div>
+        <h2 id="doneTitle">送信が完了しました</h2>
+        <p>ご回答いただき、<wbr>ありがとうございました。</p>
       </div>
 
-      <div class="agree">
-        <label>
-          <input type="checkbox" id="agree" required>
-          入力内容を、<wbr>機種のご提案・ご連絡の目的で<wbr>利用することに同意します。
-        </label>
+      <div class="receipt">
+        <span class="receipt-label">受付番号</span>
+        <strong class="receipt-no" id="receiptNo"></strong>
+        <span class="receipt-note">お問い合わせの際に<wbr>お伝えください。</span>
       </div>
 
-      <p class="error-summary" id="errorSummary" role="alert" hidden></p>
+      <h3>このあとの流れ</h3>
+      <ol class="flow">
+        <li>
+          <strong>受付完了メールをお送りします</strong>
+          <span id="flowMail"></span>
+        </li>
+        <li>
+          <strong>担当者からご連絡します</strong>
+          <span id="flowContact"></span>
+        </li>
+        <li>
+          <strong>ご希望に合った機種をご提案します</strong>
+          <span>ご予算・用途に合わせて、<wbr>おすすめの機種を<wbr>いくつかご紹介します。</span>
+        </li>
+      </ol>
+
+      <div class="contact-box" id="shopContact" hidden></div>
+
+      <details class="summary">
+        <summary>送信した内容を見る</summary>
+        <div id="doneSummary"></div>
+      </details>
 
       <div class="actions">
-        <button type="submit" class="btn-primary" id="submitBtn">この内容で送信する</button>
-        <button type="button" class="btn-secondary" id="printBtn">印刷・PDFで保存</button>
+        <button type="button" class="btn-secondary" id="printBtn">控えを印刷・PDFで保存</button>
+        <button type="button" class="btn-secondary" id="againBtn">別の製品も相談する</button>
       </div>
-    </form>
-
-    <section class="done" id="doneMessage" hidden tabindex="-1">
-      <h2>送信が完了しました</h2>
-      <p>
-        ご回答ありがとうございました。<br>
-        内容を確認のうえ、<wbr>担当者よりご連絡いたします。
-      </p>
-      <button type="button" class="btn-secondary" id="againBtn">別の内容で入力する</button>
     </section>
   </main>
 
-  <script src="config.js?v=20261106b"></script>
-  <script src="questions.js?v=20261106b"></script>
-  <script src="app.js?v=20261106b"></script>
+  <script src="config.js?v=20261106c"></script>
+  <script src="questions.js?v=20261106c"></script>
+  <script src="app.js?v=20261106c"></script>
 </body>
 </html>

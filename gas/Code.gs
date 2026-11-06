@@ -14,10 +14,16 @@
 var NOTIFY_TO = "";
 
 // true にすると、お客様にも「受付完了メール」を自動送信します。
-var SEND_CUSTOMER_COPY = false;
+// ※ config.js の CUSTOMER_MAIL と同じにしてください
+var SEND_CUSTOMER_COPY = true;
 
-// メールに表示する店舗名
+// メールに表示する店舗名・連絡先
 var SHOP_NAME = "";
+var SHOP_TEL = "";
+var SHOP_HOURS = ""; // 例:"10:00〜19:00(水曜定休)"
+
+// ご連絡までの目安(config.js の REPLY_TIME と同じにしてください)
+var REPLY_TIME = "2営業日以内";
 // ================
 
 function doPost(e) {
@@ -52,8 +58,8 @@ function saveToSheet_(data) {
   var sheetName = data.formName || data.formType; // 「パソコン」「スマートフォン」でシートを分ける
   var sheet = ss.getSheetByName(sheetName) || ss.insertSheet(sheetName);
 
-  var headers = ["受信日時"].concat(data.answers.map(function (a) { return a.label; }));
-  var row = [new Date()].concat(data.answers.map(function (a) { return a.value; }));
+  var headers = ["受信日時", "受付番号", "対応状況"].concat(data.answers.map(function (a) { return a.label; }));
+  var row = [new Date(), data.receiptNo || "", "未対応"].concat(data.answers.map(function (a) { return a.value; }));
 
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(headers);
@@ -87,9 +93,10 @@ function formatBody_(data) {
 
 function notifyOwner_(data) {
   var to = NOTIFY_TO || Session.getEffectiveUser().getEmail();
-  var subject = "【ヒアリングシート受信】" + data.formName + " / " + (data.name || "お名前未記入") + " 様";
+  var subject = "【ヒアリングシート受信】" + (data.receiptNo ? data.receiptNo + " " : "") + data.formName + " / " + (data.name || "お名前未記入") + " 様";
   var body =
     data.formName + "のヒアリングシートが届きました。\n" +
+    "受付番号:" + (data.receiptNo || "-") + "\n" +
     "受信日時:" + Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm") + "\n" +
     formatBody_(data) + "\n\n" +
     "――\nスプレッドシート:" + SpreadsheetApp.getActiveSpreadsheet().getUrl();
@@ -104,16 +111,48 @@ function notifyOwner_(data) {
 
 function sendCustomerCopy_(data) {
   if (!isEmail_(data.email)) return;
-  var from = SHOP_NAME ? SHOP_NAME + "より" : "";
+
+  // 同じアドレスへの自動返信は1時間に3通まで(いたずら送信対策)
+  var cache = CacheService.getScriptCache();
+  var key = "mail_" + data.email.toLowerCase();
+  var count = Number(cache.get(key) || 0);
+  if (count >= 3) return;
+  cache.put(key, String(count + 1), 3600);
+
+  var answers = {};
+  data.answers.forEach(function (a) { answers[a.label] = a.value; });
+  var method = answers["ご希望の連絡方法"];
+  var how = method && method !== "どちらでもよい" ? method + "で" : "メールまたはお電話で";
+
+  var shop = [];
+  if (SHOP_NAME) shop.push(SHOP_NAME);
+  if (SHOP_TEL) shop.push("TEL:" + SHOP_TEL);
+  if (SHOP_HOURS) shop.push("受付時間:" + SHOP_HOURS);
+
+  var body =
+    String(data.name || "お客様").slice(0, 40) + " 様\n\n" +
+    "このたびは" + data.formName + "の買い替えについて\n" +
+    "ヒアリングシートにご回答いただき、ありがとうございます。\n" +
+    "以下の内容で受け付けました。\n\n" +
+    "――――――――――――――――\n" +
+    "受付番号:" + (data.receiptNo || "-") + "\n" +
+    "――――――――――――――――\n\n" +
+    "■ このあとの流れ\n" +
+    "1. 担当者が内容を確認します\n" +
+    "2. " + REPLY_TIME + "に、" + how + "ご連絡します\n" +
+    "3. ご予算・用途に合った機種をご提案します\n\n" +
+    "回答内容の変更や追加のご要望は、\n" +
+    "このメールにそのままご返信ください。\n" +
+    (shop.length ? "お急ぎの場合は、お電話でも承ります。\n" : "") +
+    "\n■ ご回答内容\n" +
+    formatBody_(data) + "\n\n" +
+    "※お心当たりのない場合は、お手数ですがこのメールを破棄してください。\n" +
+    (shop.length ? "\n――\n" + shop.join("\n") + "\n" : "");
+
   MailApp.sendEmail({
     to: data.email,
-    subject: "【受付完了】" + data.formName + "のヒアリングシート",
-    body:
-      (data.name || "お客様") + " 様\n\n" +
-      "ヒアリングシートのご回答ありがとうございました。\n" +
-      "内容を確認のうえ、担当者よりご連絡いたします。\n" +
-      "\n以下の内容で受け付けました。\n" +
-      formatBody_(data) + "\n\n" + from,
+    subject: "【受付完了】" + data.formName + "のヒアリングシート(受付番号 " + (data.receiptNo || "-") + ")",
+    body: body,
     name: SHOP_NAME || undefined,
   });
 }
