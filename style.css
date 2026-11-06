@@ -53,17 +53,6 @@ h1 { word-break: keep-all; overflow-wrap: anywhere; margin: 0 0 12px; color: var
   background: var(--selected-bg); border-radius: 999px;
 }
 
-.restore-notice {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
-  margin: 0 0 16px; padding: 10px 14px; font-size: 14px;
-  color: var(--ok); background: var(--ok-bg); border-radius: 6px;
-  word-break: keep-all; overflow-wrap: anywhere;
-}
-.link-btn {
-  padding: 0; font: inherit; font-size: 13px; color: var(--muted);
-  background: none; border: none; text-decoration: underline; cursor: pointer;
-}
-
 /* 進み具合のバー(スクロールしても上部に表示) */
 .progress {
   position: sticky; top: 0; z-index: 5;
@@ -304,7 +293,7 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 
 @media print {
   body { background: #fff; font-size: 12px; }
   .sheet { margin: 0; padding: 0; border: none; max-width: none; }
-  .switcher, .actions, .agree, .error-summary, .hp, .badges, .progress, .restore-notice { display: none !important; }
+  .switcher, .actions, .agree, .error-summary, .hp, .badges, .progress { display: none !important; }
   .answer-list dl, .section { break-inside: avoid; }
   .section { break-inside: avoid; margin-bottom: 20px; }
   input, textarea { border: none; border-bottom: 1px solid #999; border-radius: 0; }

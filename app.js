@@ -14,8 +14,6 @@
     title: $("formTitle"),
     shopName: $("shopName"),
     tabs: document.querySelectorAll(".switcher button"),
-    restoreNotice: $("restoreNotice"),
-    clearDraftBtn: $("clearDraftBtn"),
     progress: $("progress"),
     progressLabel: $("progressLabel"),
     progressCount: $("progressCount"),
@@ -35,9 +33,6 @@
     againBtn: $("againBtn"),
   };
 
-  // 完了後に「別の製品も相談する」を押したとき、引き継ぐ項目
-  const CONTACT_IDS = ["name", "email", "tel", "contact_method", "contact_time"];
-  const DRAFT_DAYS = 30; // 一時保存を残す日数
 
   let current = null;
   let lastAnswers = null;
@@ -223,7 +218,6 @@
     renderForm(def);
     els.agree.checked = false;
     clearErrors();
-    els.restoreNotice.hidden = !restoreDraft();
     updateFollowUps();
     updateProgress();
 
@@ -360,71 +354,6 @@
   }
 
   // =====================================================
-  // 一時保存(このブラウザの中だけに保存されます)
-  // =====================================================
-
-  const draftKey = () => "hearing-draft-" + current.key;
-
-  function saveDraft() {
-    const data = {};
-    Array.from(els.form.elements).forEach((input) => {
-      if (!input.name || !input.name.startsWith("f_")) return;
-      if (input.type === "radio" || input.type === "checkbox") {
-        if (input.checked) (data[input.name] = data[input.name] || []).push(input.value);
-      } else if (input.value) {
-        data[input.name] = input.value;
-      }
-    });
-    try {
-      if (Object.keys(data).length) {
-        localStorage.setItem(draftKey(), JSON.stringify({ savedAt: Date.now(), data }));
-      } else {
-        localStorage.removeItem(draftKey());
-      }
-    } catch (e) {
-      /* プライベートモードなどで保存できない場合は何もしない */
-    }
-  }
-
-  function readDraft(key) {
-    try {
-      const raw = JSON.parse(localStorage.getItem(key) || "null");
-      if (!raw || Date.now() - raw.savedAt > DRAFT_DAYS * 864e5) return null;
-      return raw.data;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  function applyValues(data) {
-    Object.entries(data).forEach(([name, value]) => {
-      const inputs = els.form.querySelectorAll(`[name="${name}"]`);
-      inputs.forEach((input) => {
-        if (input.type === "radio" || input.type === "checkbox") {
-          input.checked = [].concat(value).includes(input.value);
-        } else {
-          input.value = value;
-        }
-      });
-    });
-  }
-
-  function restoreDraft() {
-    const data = readDraft(draftKey());
-    if (!data) return false;
-    applyValues(data);
-    return true;
-  }
-
-  function clearDraft(key) {
-    try {
-      localStorage.removeItem(key || draftKey());
-    } catch (e) {
-      /* 何もしない */
-    }
-  }
-
-  // =====================================================
   // 確認画面
   // =====================================================
 
@@ -514,7 +443,6 @@
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload),
       });
-      clearDraft();
       showDone(receiptNo, answers);
     } catch (err) {
       els.sendError.textContent =
@@ -573,27 +501,15 @@
     els.doneView.focus();
   }
 
-  // 別の製品も相談する:お名前・連絡先は入力済みの状態で始める
+  // 続けて別の内容を送る:入力内容はすべて消して、まっさらな状態から始める
   function startAnother() {
-    const contact = {};
-    CONTACT_IDS.forEach((id) => {
-      Array.from(els.form.querySelectorAll(`[name="f_${id}"]`)).forEach((input) => {
-        if (input.type === "radio" || input.type === "checkbox") {
-          if (input.checked) (contact["f_" + id] = contact["f_" + id] || []).push(input.value);
-        } else if (input.value) {
-          contact["f_" + id] = input.value;
-        }
-      });
-    });
+    resetForm(current.key);
+  }
 
-    const nextKey = current.key === "pc" ? "phone" : "pc";
+  function resetForm(key) {
     els.form.reset();
-    selectForm(nextKey);
-    if (!readDraft(draftKey())) {
-      applyValues(contact);
-      saveDraft();
-      updateProgress();
-    }
+    lastAnswers = null;
+    selectForm(key);
     showView("input");
     window.scrollTo({ top: 0 });
   }
@@ -612,7 +528,6 @@
     const answers = collect();
     updateProgress(answers);
     recheckErrors(answers);
-    saveDraft();
   }
 
   els.form.addEventListener("input", onEdit);
@@ -623,12 +538,6 @@
       if (b.dataset.form !== current.key) selectForm(b.dataset.form);
     })
   );
-  els.clearDraftBtn.addEventListener("click", () => {
-    clearDraft();
-    els.form.reset();
-    selectForm(current.key);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
   els.submitBtn.addEventListener("click", submit);
   els.backBtn.addEventListener("click", backToInput);
   els.printBtn.addEventListener("click", () => {
@@ -636,6 +545,20 @@
     window.print();
   });
   els.againBtn.addEventListener("click", startAnother);
+
+  // 以前のバージョンで保存された入力内容が残っていれば消す
+  try {
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith("hearing-draft-"))
+      .forEach((k) => localStorage.removeItem(k));
+  } catch (e) {
+    /* 何もしない */
+  }
+
+  // ブラウザの「戻る」で表示されたときも、入力内容を残さない
+  window.addEventListener("pageshow", (e) => {
+    if (e.persisted) resetForm(current.key);
+  });
 
   showView("input");
   selectForm(new URLSearchParams(location.search).get("type") || "pc");
