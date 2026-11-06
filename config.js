@@ -22,4 +22,8 @@ window.HEARING_CONFIG = {
   // 受付完了メールをお客様に送る設定にしているか
   // ※ gas/Code.gs の SEND_CUSTOMER_COPY と同じにしてください
   CUSTOMER_MAIL: true,
+
+  // いたずら送信対策(Cloudflare Turnstile)のサイトキー。
+  // 使う場合だけ設定します(手順は docs/SETUP.md)。空欄なら使いません。
+  TURNSTILE_SITE_KEY: "",
 };

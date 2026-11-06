@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <title>買い替えヒアリングシート</title>
-  <link rel="stylesheet" href="style.css?v=20261106g">
+  <link rel="stylesheet" href="style.css?v=20261107a">
 </head>
 <body>
   <main class="sheet">
     <header class="sheet-header">
+      <div class="tools">
+        <button type="button" class="tool-btn" id="fontBtn" aria-pressed="false">文字を大きくする</button>
+      </div>
       <p class="shop-name" id="shopName" hidden></p>
       <h1 id="formTitle">買い替えヒアリングシート</h1>
       <p class="lead">
@@ -18,7 +21,7 @@
         <span class="req">必須</span> の項目は、<wbr>わからない場合も<wbr>「わからない」「相談したい」を<wbr>お選びください。
       </p>
       <ul class="badges">
-        <li>⏱ 所要時間 約3分</li>
+        <li id="timeBadge">⏱ 所要時間 約3分</li>
         <li>✅ 送信前に内容を確認できます</li>
       </ul>
     </header>
@@ -36,6 +39,18 @@
           </button>
         </div>
       </nav>
+
+      <div class="mode-switch" role="group" aria-label="質問の量">
+        <p class="switcher-label">質問の量を選べます</p>
+        <div class="mode-buttons">
+          <button type="button" data-mode="simple" aria-pressed="false">
+            <strong>かんたん版</strong><span>必須だけ・約1分</span>
+          </button>
+          <button type="button" data-mode="full" aria-pressed="true">
+            <strong>しっかり版</strong><span>おすすめ・約3分</span>
+          </button>
+        </div>
+      </div>
 
       <!-- 画面上部に固定される進み具合のバー -->
       <div class="progress" id="progress" aria-live="polite">
@@ -76,6 +91,9 @@
         以下の内容で送信します。<wbr>よろしければ<wbr>「この内容で送信する」を<wbr>押してください。
       </p>
       <div id="confirmBody"></div>
+      <!-- いたずら送信対策の確認欄(config.js で設定したときだけ表示) -->
+      <div class="turnstile-box" id="turnstileBox" hidden></div>
+      <p class="send-status" id="sendStatus" role="status" hidden></p>
       <p class="error-summary" id="sendError" role="alert" hidden></p>
       <div class="actions">
         <button type="button" class="btn-primary" id="submitBtn">この内容で送信する</button>
@@ -127,9 +145,9 @@
     </section>
   </main>
 
-  <script src="config.js?v=20261106g"></script>
-  <script src="accessories.js?v=20261106g"></script>
-  <script src="questions.js?v=20261106g"></script>
-  <script src="app.js?v=20261106g"></script>
+  <script src="config.js?v=20261107a"></script>
+  <script src="accessories.js?v=20261107a"></script>
+  <script src="questions.js?v=20261107a"></script>
+  <script src="app.js?v=20261107a"></script>
 </body>
 </html>

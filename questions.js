@@ -8,6 +8,7 @@
 //   email/tel … メール・電話番号の入力欄
 //   radio     … 1つだけ選ぶ
 //   checkbox  … 複数選べる
+//   photo     … 写真の添付
 // other: true にすると「その他(  )」の入力欄が付きます。
 // 入力の手間を減らすため、できるだけ radio / checkbox で作っています。
 
@@ -428,12 +429,74 @@
     ],
   };
 
+  // =====================================================
+  // 用語の説明(「?」を押すと表示されます)
+  // =====================================================
+  const HELP = {
+    pc: {
+      os: "Windows:会社や学校で広く使われている、一般的なパソコンです。Mac:Apple社のパソコンで、iPhoneとの連携が得意です。迷ったら「こだわりなし」をお選びください。",
+      office: "Word(文書作成)やExcel(表計算)などのソフトです。最初から付いているパソコンと、別に購入が必要なパソコンがあります。",
+      screen: "インチは画面の対角線の長さです。13インチはA4用紙より少し小さく、15インチはA4用紙より少し大きいくらいの大きさです。",
+      features: "テンキー:キーボード右側の数字専用のキーです。HDMI:テレビやモニターにつなぐ差し込み口です。有線LAN:インターネットのケーブルを直接さす差し込み口です。",
+      data_transfer: "古いパソコンに入っている写真・書類・メールなどを、新しいパソコンに移す作業です。",
+      photo: "型番は、本体の裏側やバッテリーの下のシールに書かれていることが多いです。",
+    },
+    phone: {
+      current_carrier: "ahamo・povo・LINEMO は、大手通信会社のオンライン専用の料金プランです。わからない場合は「わからない」で大丈夫です。",
+      storage: "写真・動画・アプリを保存できる量です。写真や動画をたくさん撮る方は、大きめがおすすめです。",
+      features: "おサイフケータイ:スマホをかざして、Suicaなどで支払える機能です。microSDカード:写真などを保存する小さなカードです(iPhoneでは使えません)。デュアルSIM・eSIM:1台で2つの電話番号を使える機能です。",
+      carrier: "SIMフリー:通信会社とは契約せず、どの会社でも使える端末だけを購入する方法です。",
+      data_transfer: "電話帳・写真・LINEなどを、新しいスマホに移す作業です。",
+      photo: "機種名は、スマホの「設定」→「一般」→「情報」(iPhone)や、「設定」→「デバイス情報」(Android)で確認できます。その画面の写真でも大丈夫です。",
+    },
+  };
+
+  // =====================================================
+  // 答えによって質問を出し分ける条件
+  // =====================================================
+  // 例:「デスクトップ」を選んだら、ノートPC用の「画面サイズ」は表示しない
+  const HAS_DEVICE = { field: "current_maker", notIn: ["持っていない"] };
+  const SHOW_IF = {
+    pc: {
+      photo: HAS_DEVICE,
+      years_used: HAS_DEVICE,
+      data_transfer: HAS_DEVICE,
+      screen: { field: "pc_type", notIn: ["デスクトップパソコン"] },
+    },
+    phone: {
+      photo: HAS_DEVICE,
+      years_used: HAS_DEVICE,
+      data_transfer: HAS_DEVICE,
+    },
+  };
+
+  // 今の機種の写真(任意)
+  const PHOTO = {
+    id: "photo",
+    label: "今の機種の写真",
+    note: "任意・3枚まで",
+    type: "photo",
+    description:
+      "型番が書かれたシールや、機種名がわかる画面の写真があると、確認がスムーズです。パスワードや個人情報が写らないようご注意ください。",
+  };
+
   [pc, phone].forEach((form) => {
-    form.sections.forEach((section) =>
+    // 連絡先は最後に聞く(製品の質問から始めたほうが、最後まで答えてもらいやすいため)
+    form.sections.push(form.sections.shift());
+
+    form.sections.forEach((section) => {
+      // 写真の項目を「現在お使いの機種」のすぐ後ろに入れる
+      const at = section.fields.findIndex((f) => f.id === "current_maker");
+      if (at !== -1) section.fields.splice(at + 1, 0, Object.assign({}, PHOTO));
+
       section.fields.forEach((field) => {
         field.required = REQUIRED[form.key].includes(field.id);
-      })
-    );
+        if (HELP[form.key][field.id]) field.help = HELP[form.key][field.id];
+        if (SHOW_IF[form.key][field.id]) field.showIf = SHOW_IF[form.key][field.id];
+        // 初めて買う方も「買い替えの理由」に答えられるようにする
+        if (field.id === "reason") field.options = ["初めて購入する"].concat(field.options);
+      });
+    });
   });
 
   window.HEARING_FORMS = { pc, phone };
