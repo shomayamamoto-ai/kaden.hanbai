@@ -118,6 +118,21 @@
           });
           wrap.appendChild(el("label", { class: "choice other-row" }, [otherBox, el("span", { text: "その他" }), otherText]));
         }
+        // 「特になし」と他の選択肢は同時に選べないようにする
+        if (field.type === "checkbox") {
+          wrap.addEventListener("change", (e) => {
+            const t = e.target;
+            if (!t.checked || t.name !== name) return;
+            const isNone = t.value.startsWith("特になし");
+            wrap.querySelectorAll(`input[name="${name}"]`).forEach((box) => {
+              if (box !== t && box.value.startsWith("特になし") !== isNone) box.checked = false;
+            });
+            if (isNone) {
+              const other = wrap.querySelector(`input[name="${name}_other"]`);
+              if (other) other.value = "";
+            }
+          });
+        }
         return wrap;
       }
 

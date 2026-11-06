@@ -144,7 +144,7 @@
       },
       {
         title: "スペック・機能の希望",
-        note: "わかる場合のみ",
+        note: "必須以外はわかる場合のみ",
         fields: [
           {
             id: "screen",
@@ -414,6 +414,7 @@
       "user", "age",                          // 誰向けの提案か
       "current_maker", "reason",              // 今の状況と、何を解決したいか
       "pc_type", "os", "usage", "office",     // 機種選びの決め手
+      "features",                             // 必要な端子がないと使えないため
       "data_transfer",                        // 当日の作業量・費用に関わる
       "quantity", "budget", "deadline",       // 見積もりと在庫手配に必要
     ],
