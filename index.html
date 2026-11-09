@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <title>買い替えヒアリングシート</title>
-  <link rel="stylesheet" href="style.css?v=20261109a">
+  <link rel="stylesheet" href="style.css?v=20261109b">
 </head>
 <body>
   <main class="sheet">
@@ -16,7 +16,7 @@
       <p class="shop-name" id="shopName" hidden></p>
       <h1 id="formTitle">買い替えヒアリングシート</h1>
       <p class="lead">
-        最適な機種をご提案・選定するため、<wbr>以下の項目について<wbr>ご回答をお願いいたします。<br>
+        <span id="leadIntro">最適な機種をご提案・選定するため、</span><wbr>以下の項目について<wbr>ご回答をお願いいたします。<br>
         わかる範囲で構いませんので、<wbr>ご記入ください。<br>
         <span class="req">必須</span> の項目は、<wbr>わからない場合も<wbr>「わからない」「相談したい」を<wbr>お選びください。
       </p>
@@ -126,12 +126,28 @@
           <span id="flowContact"></span>
         </li>
         <li>
-          <strong>ご希望に合った機種をご提案します</strong>
-          <span>ご予算・用途に合わせて、<wbr>おすすめの機種を<wbr>いくつかご紹介します。</span>
+          <strong id="flowProposal">ご希望に合った機種をご提案します</strong>
+          <span id="flowProposalText">ご予算・用途に合わせて、<wbr>おすすめの機種を<wbr>いくつかご紹介します。</span>
         </li>
       </ol>
 
       <div class="contact-box" id="shopContact" hidden></div>
+
+      <!-- 機種のヒアリングを送ったあとに、携帯料金・Wi-Fiの見直しをおすすめする -->
+      <div class="upsell" id="upsell" hidden>
+        <p class="upsell-eyebrow">あわせてご検討ください</p>
+        <h3 class="upsell-title">📶 携帯料金・Wi-Fiの見直しも<wbr>いかがですか?</h3>
+        <p class="upsell-text">
+          毎月の携帯料金や、<wbr>ご自宅のWi-Fiが<wbr>今の使い方に合っているかを<wbr>お調べし、<wbr>あなたに合ったプランをご提案します。
+        </p>
+        <ul class="upsell-points">
+          <li>使っていないオプションや<wbr>割引の漏れがないか確認</li>
+          <li>データ量・通話の使い方に<wbr>合ったプランをご提案</li>
+          <li>ご家族の分や、<wbr>ご自宅のネットもまとめて相談OK</li>
+        </ul>
+        <button type="button" class="btn-primary" id="upsellBtn">料金見直しのヒアリングに進む(約3分)</button>
+        <p class="muted">お名前などは、<wbr>お手数ですがもう一度ご入力ください。</p>
+      </div>
 
       <details class="summary">
         <summary>送信した内容を見る</summary>
@@ -145,10 +161,10 @@
     </section>
   </main>
 
-  <script src="config.js?v=20261109a"></script>
-  <script src="models.js?v=20261109a"></script>
-  <script src="accessories.js?v=20261109a"></script>
-  <script src="questions.js?v=20261109a"></script>
-  <script src="app.js?v=20261109a"></script>
+  <script src="config.js?v=20261109b"></script>
+  <script src="models.js?v=20261109b"></script>
+  <script src="accessories.js?v=20261109b"></script>
+  <script src="questions.js?v=20261109b"></script>
+  <script src="app.js?v=20261109b"></script>
 </body>
 </html>

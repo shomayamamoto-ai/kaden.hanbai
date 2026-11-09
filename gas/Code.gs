@@ -45,7 +45,9 @@ var PHOTO_FOLDER_NAME = "ヒアリングシート写真";
 var STATUS_OPTIONS = ["未対応", "連絡済み", "提案済み", "成約", "失注", "対応不要"];
 // ================
 
-var FORM_SHEETS = ["パソコン", "スマートフォン"];
+var FORM_SHEETS = ["パソコン", "スマートフォン", "携帯料金見直し"];
+var ESTIMATE_SHEETS = ["パソコン", "スマートフォン"]; // 見積もりのたたき台を作れるシート
+var FORM_NAMES = { pc: "パソコン", phone: "スマートフォン", plan: "携帯料金見直し" };
 var FIXED_HEADERS = ["受信日時", "受付番号", "対応状況", "対応メモ", "提案のヒント", "写真", "回答の種類"];
 var STATUS_TTL = 21600; // 受付状況を覚えておく時間(秒)= 6時間
 
@@ -60,7 +62,7 @@ function doPost(e) {
   } catch (err) {
     return json_({ ok: false, error: "invalid" });
   }
-  if (!data || !/^(PC|SP)-\d{6}-\d{4}$/.test(String(data.receiptNo || ""))) {
+  if (!data || !/^(PC|SP|MP)-\d{6}-\d{4}$/.test(String(data.receiptNo || ""))) {
     return json_({ ok: false, error: "invalid" });
   }
 
@@ -171,7 +173,8 @@ function cleanPayload_(data) {
   };
   data.name = cut(data.name, 50);
   data.email = cut(data.email, 100);
-  data.formName = data.formType === "phone" ? "スマートフォン" : "パソコン";
+  if (!FORM_NAMES[data.formType]) data.formType = "pc";
+  data.formName = FORM_NAMES[data.formType];
   data.answers = data.answers.map(function (a) {
     return { section: cut(a.section, 50), id: cut(a.id, 50), label: cut(a.label, 80), value: cut(a.value, 1000) };
   });
@@ -358,6 +361,8 @@ function makeHints_(data) {
     if (has("reason", "Windows 10")) {
       hints.push("Windows 10 のサポート終了による買い替えです(2025年10月14日に終了済み)。データ移行とあわせてご提案ください。");
     }
+  } else if (data.formType === "plan") {
+    makePlanHints_(a, has, any, hints);
   } else {
     if (has("budget", "3万円未満") && has("features", "高性能カメラ")) {
       hints.push("ご予算3万円未満で、高性能カメラをご希望です。ご予算と性能の優先順位を確認してください。");
@@ -393,6 +398,70 @@ function makeHints_(data) {
     }
   }
   return hints;
+}
+
+// 携帯料金見直しのヒント
+function makePlanHints_(a, has, any, hints) {
+  var small = any("data_usage", ["3GB未満", "3〜10GB"]);
+  var expensive = any("monthly_fee", ["8,000〜1万円", "1万〜1万5,000円", "1万5,000円以上"]);
+  if (small && expensive) {
+    hints.push("データ使用量が少ないのに、月々の料金が高めです。小容量プランや、オンライン専用プランへの見直しで安くなる可能性が高いです。");
+  }
+  if (has("throttle", "毎月") || has("data_usage", "50GB以上")) {
+    hints.push("データが足りていません(速度制限・大容量)。使い放題プラン、または自宅Wi-Fiの活用をご提案ください。");
+  }
+  if (has("data_usage", "わからない") || has("monthly_fee", "わからない")) {
+    hints.push("データ量か料金が不明です。マイページか請求書で確認していただくか、来店時に一緒に確認してください。");
+  }
+  if (any("family_count", ["3人", "4人", "5人以上"])) {
+    hints.push("同じ会社のご家族が3人以上います。家族割やまとめての乗り換えで、合計の料金が大きく変わる可能性があります。");
+  }
+  if (has("installment", "はい")) {
+    hints.push("端末代の分割払いが残っています(残り:" + (a.installment_left || "不明") + "/" + (a.installment_times || "不明") + ")。乗り換えると残りを一括で請求されることがあるため、乗り換えの時期をご相談ください。");
+  }
+  if (has("holder", "ご家族") || has("holder", "会社")) {
+    hints.push("契約の名義人がご本人ではありません。手続きに名義人の同意・来店が必要か、事前に確認してください。");
+  }
+  if (has("carrier_mail", "今後も必要")) {
+    hints.push("携帯会社のメールアドレスを今後も使いたいご希望です。乗り換える場合は、有料の持ち運びサービスなどの対象かを確認してください。");
+  }
+  if (any("call_time", ["1〜3時間", "3時間以上"]) || has("call_style", "仕事")) {
+    hints.push("通話が多い方です。かけ放題(時間無制限)の要否を確認し、料金に含めて比較してください。");
+  }
+  if (has("call_time", "ほとんど使わない") && has("options", "かけ放題")) {
+    hints.push("通話をほとんど使わないのに、かけ放題に加入しています。外すだけで安くなる可能性があります。");
+  }
+  if (has("options", "サブスク") || has("options", "補償")) {
+    hints.push("有料オプション(" + a.options + ")に加入中です。使っているかを確認し、不要なものは外すことをご提案ください。");
+  }
+  if (a.signal && !has("signal", "特にない")) {
+    hints.push("電波がつながりにくい場所があります(" + a.signal + ")。乗り換え先の会社のエリアを確認してください。");
+  }
+  if (has("area", "地方・山間部")) {
+    hints.push("地方・山間部でのご利用が多いです。乗り換え先の電波のエリアを優先して確認してください。");
+  }
+  var groups = [
+    ["dポイント", "d払い", "dカード", "ドコモ系(ドコモ・ahamo)"],
+    ["Pontaポイント", "au PAY", "au PAY カード", "au系(au・UQモバイル・povo)"],
+    ["PayPayポイント", "PayPay", "PayPayカード", "ソフトバンク系(ソフトバンク・ワイモバイル・LINEMO)"],
+    ["楽天ポイント", "楽天ペイ", "楽天カード", "楽天モバイル"],
+  ];
+  groups.forEach(function (g) {
+    var score = (has("points", g[0]) ? 1 : 0) + (has("pay_service", g[1]) ? 1 : 0) + (has("payment_card", g[2]) ? 1 : 0);
+    if (score >= 2) hints.push("ポイント・決済が「" + g[3] + "」に集まっています。同じグループの携帯会社にすると、ポイント還元を受けやすくなります。");
+  });
+  if (has("home_wifi", "いいえ")) {
+    hints.push("自宅にWi-Fiがありません。光回線やホームルーターと、携帯とのセット割をご提案できます。");
+  }
+  if (has("net_need", "乗り換え") || (a.net_trouble && !has("net_trouble", "特になし"))) {
+    hints.push("自宅のネットに見直しのご希望・不満があります(" + (a.net_trouble || a.net_need) + ")。携帯とのセット割もあわせてご提案ください。");
+  }
+  if (has("housing", "賃貸") && has("net_need", "新しく引きたい")) {
+    hints.push("賃貸にお住まいで、新しくネットを引きたいご希望です。工事の可否(大家さんの許可)を確認するか、工事のいらないホームルーターもご提案ください。");
+  }
+  if (has("device_plan", "機種変更")) {
+    hints.push("機種変更もご検討中です。端末代を含めた総額で比べてご提案ください。");
+  }
 }
 
 // =====================================================
@@ -462,7 +531,7 @@ function sendCustomerCopy_(data) {
 
   var body =
     (data.name || "お客様") + " 様\n\n" +
-    "このたびは" + data.formName + "の買い替えについて\n" +
+    "このたびは" + (data.formType === "plan" ? "携帯料金の見直し" : data.formName + "の買い替え") + "について\n" +
     "ヒアリングシートにご回答いただき、ありがとうございます。\n" +
     "以下の内容で受け付けました。\n\n" +
     "――――――――――――――――\n" +
@@ -471,7 +540,7 @@ function sendCustomerCopy_(data) {
     "■ このあとの流れ\n" +
     "1. 担当者が内容を確認します\n" +
     "2. " + REPLY_TIME + "に、" + how + "ご連絡します\n" +
-    "3. ご予算・用途に合った機種をご提案します\n\n" +
+    (data.formType === "plan" ? "3. ご利用状況に合ったプランをご提案します\n\n" : "3. ご予算・用途に合った機種をご提案します\n\n") +
     "回答内容の変更や追加のご要望は、\n" +
     "このメールにそのままご返信ください。\n" +
     (shop.length ? "お急ぎの場合は、お電話でも承ります。\n" : "") +
@@ -551,6 +620,11 @@ var SUMMARY_ITEMS = [
   "想定ご予算(端末代・税込)",
   "一緒に購入したいもの",
   "あると助かるサポート",
+  "現在の携帯会社",
+  "毎月の携帯料金(1人あたり)",
+  "毎月のデータ使用量",
+  "自宅にWi-Fiはありますか?",
+  "見直しで重視したいこと",
 ];
 
 function updateSummary() {
@@ -616,7 +690,7 @@ function createEstimate() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getActiveSheet();
   var rowNo = sheet.getActiveRange() ? sheet.getActiveRange().getRow() : 0;
-  if (FORM_SHEETS.indexOf(sheet.getName()) === -1 || rowNo < 2) {
+  if (ESTIMATE_SHEETS.indexOf(sheet.getName()) === -1 || rowNo < 2) {
     alert_("「パソコン」または「スマートフォン」のシートで、見積もりを作りたいお客様の行を選んでから実行してください。");
     return null;
   }

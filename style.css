@@ -393,3 +393,18 @@ html.large-text .choice input { width: 20px; height: 20px; margin-top: 5px; }
 @media (max-width: 360px) {
   .switcher button .icon { display: none; }
 }
+
+/* ===== 送信後のおすすめ(携帯料金・Wi-Fiの見直し) ===== */
+.upsell {
+  margin: 28px 0 0; padding: 20px;
+  border: 2px solid var(--accent); border-radius: 12px; background: var(--selected-bg);
+  word-break: keep-all; overflow-wrap: anywhere;
+}
+.upsell-eyebrow { margin: 0 0 4px; font-size: 12px; font-weight: bold; letter-spacing: .08em; color: var(--accent-dark); }
+.done .upsell-title { margin: 0 0 8px; font-size: 20px; color: var(--heading); }
+.upsell-text { margin: 0 0 10px; }
+.upsell-points { margin: 0 0 16px; padding-left: 1.2em; font-size: 14px; }
+.upsell-points li + li { margin-top: 2px; }
+.upsell .btn-primary { width: 100%; min-width: 0; }
+.upsell .muted { margin: 8px 0 0; text-align: center; }
+@media print { .upsell { display: none !important; } }

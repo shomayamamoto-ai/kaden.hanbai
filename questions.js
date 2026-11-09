@@ -402,6 +402,266 @@
     ],
   };
 
+  // ======================= 携帯料金見直し =======================
+  // 機種のヒアリングを送ったあとに「携帯料金・Wi-Fiの見直しもいかがですか?」と案内するシート
+  const CARRIERS = ["ドコモ", "au", "ソフトバンク", "楽天モバイル", "ahamo・povo・LINEMO", "UQモバイル・ワイモバイル", "その他の格安SIM", "わからない"];
+  const plan = {
+    key: "plan",
+    name: "携帯料金見直し",
+    title: "携帯料金見直しヒアリングシート",
+    leadIntro: "あなたに合った料金プランやWi-Fiをご提案するため、",
+    proposal: "ご利用状況に合ったプランをご提案します",
+    hideSwitcher: true,
+    sections: [
+      contactSection,
+      {
+        title: "現在の契約状況",
+        fields: [
+          { id: "current_carrier", label: "現在の携帯会社", type: "radio", options: CARRIERS, other: true },
+          { id: "plan_name", label: "契約プラン名", note: "わかれば", type: "text", placeholder: "例:eximo、使い放題MAX など" },
+          { id: "contract_years", label: "契約年数(いつから使っているか)", type: "radio", options: ["1年未満", "1〜3年", "3〜5年", "5〜10年", "10年以上", "わからない"] },
+          { id: "holder", label: "契約の名義人", type: "radio", options: ["ご本人", "ご家族(親・配偶者など)", "会社(法人名義)", "わからない"], other: true },
+          { id: "family_count", label: "家族で同じ会社を使っている人数", type: "radio", options: ["自分だけ", "2人", "3人", "4人", "5人以上", "わからない"] },
+          {
+            id: "family_members",
+            label: "一緒に見直したいご家族",
+            note: "複数選択可",
+            type: "checkbox",
+            options: ["配偶者・パートナー", "お子さま(小学生以下)", "お子さま(中学生〜大学生)", "ご両親・ご高齢の方", "自分だけでよい"],
+          },
+          {
+            id: "carrier_mail",
+            label: "携帯会社のメールアドレス(@docomo.ne.jp など)",
+            type: "radio",
+            options: ["使っていて、今後も必要", "使っているが、なくてもよい", "使っていない", "わからない"],
+          },
+          {
+            id: "device_plan",
+            label: "今のスマホ",
+            type: "radio",
+            options: ["そのまま使い続けたい", "機種変更も一緒に考えたい", "わからない・相談したい"],
+          },
+        ],
+      },
+      {
+        title: "毎月の支払い",
+        fields: [
+          {
+            id: "monthly_fee",
+            label: "毎月の携帯料金(1人あたり)",
+            type: "radio",
+            options: ["2,000円未満", "2,000〜5,000円", "5,000〜8,000円", "8,000〜1万円", "1万〜1万5,000円", "1万5,000円以上", "わからない"],
+          },
+          {
+            id: "family_total",
+            label: "家族全体の合計金額",
+            type: "radio",
+            options: ["1万円未満", "1万〜2万円", "2万〜3万円", "3万〜4万円", "4万円以上", "わからない"],
+          },
+          { id: "installment", label: "端末代の分割払いは残っていますか?", type: "radio", options: ["はい", "いいえ", "わからない"] },
+          {
+            id: "installment_left",
+            label: "分割払いの残りの金額",
+            type: "radio",
+            options: ["1万円未満", "1万〜3万円", "3万〜5万円", "5万〜10万円", "10万円以上", "わからない"],
+          },
+          {
+            id: "installment_times",
+            label: "分割払いの残りの回数",
+            type: "radio",
+            options: ["6回以下", "7〜12回", "13〜24回", "25回以上", "わからない"],
+          },
+          {
+            id: "options",
+            label: "加入しているオプション",
+            note: "複数選択可・わかる範囲で",
+            type: "checkbox",
+            options: [
+              "かけ放題(5分・10分など)",
+              "かけ放題(時間無制限)",
+              "端末の補償サービス",
+              "動画・音楽のサブスク(Netflix・Spotifyなど)",
+              "留守番電話",
+              "セキュリティ・迷惑電話対策",
+              "クラウド保存(写真のバックアップなど)",
+              "特になし",
+              "わからない",
+            ],
+            other: true,
+          },
+          {
+            id: "bundle",
+            label: "受けている割引",
+            note: "複数選択可・わかる範囲で",
+            type: "checkbox",
+            options: ["家族割", "自宅のネット(光回線など)とのセット割", "電気・ガスとのセット割", "クレジットカード払いの割引", "特になし", "わからない"],
+          },
+          {
+            id: "payment_card",
+            label: "携帯料金の支払い方法",
+            type: "radio",
+            options: ["dカード", "au PAY カード", "PayPayカード", "楽天カード", "その他のクレジットカード", "口座振替", "わからない"],
+          },
+          {
+            id: "photo",
+            label: "請求書・料金明細の写真",
+            note: "任意・3枚まで",
+            type: "photo",
+            description: "請求書や、料金明細の画面の写真があると、より正確にお調べできます。暗証番号などが写らないようご注意ください。",
+          },
+        ],
+      },
+      {
+        title: "データ通信の使い方",
+        fields: [
+          {
+            id: "data_usage",
+            label: "毎月のデータ使用量",
+            type: "radio",
+            options: ["3GB未満", "3〜10GB", "10〜20GB", "20〜50GB", "50GB以上(使い放題が必要)", "わからない"],
+          },
+          {
+            id: "home_wifi",
+            label: "自宅にWi-Fiはありますか?",
+            type: "radio",
+            options: ["はい(光回線)", "はい(ホームルーター・置くだけWi-Fi)", "はい(ポケットWi-Fi)", "いいえ", "わからない"],
+          },
+          {
+            id: "heavy_use",
+            label: "よく使うもの",
+            note: "複数選択可",
+            type: "checkbox",
+            options: ["動画(YouTube・Netflixなど)", "ゲーム", "SNS", "ビデオ通話・テレワーク", "音楽の聴き放題", "特になし・あまり使わない"],
+          },
+          {
+            id: "throttle",
+            label: "データが足りずに、速度制限になることはありますか?",
+            type: "radio",
+            options: ["毎月のようにある", "たまにある", "ない", "わからない"],
+          },
+        ],
+      },
+      {
+        title: "通話の使い方",
+        fields: [
+          {
+            id: "call_time",
+            label: "1か月の通話時間(電話番号での通話)",
+            type: "radio",
+            options: ["ほとんど使わない", "30分未満", "30分〜1時間", "1〜3時間", "3時間以上", "わからない"],
+          },
+          {
+            id: "call_style",
+            label: "通話のしかた",
+            type: "radio",
+            options: ["5分以内の短い電話が多い", "長電話が多い", "LINEなどアプリの通話が中心", "仕事で電話をよく使う"],
+          },
+        ],
+      },
+      {
+        title: "電波・使う場所",
+        fields: [
+          {
+            id: "signal",
+            label: "電波がつながりにくい場所",
+            note: "複数選択可",
+            type: "checkbox",
+            options: ["自宅", "職場・学校", "通勤・通学中(電車・地下など)", "よく行く旅行先・帰省先", "特にない"],
+          },
+          {
+            id: "area",
+            label: "主に使う地域",
+            type: "radio",
+            options: ["都市部", "郊外・住宅地", "地方・山間部", "海外にもよく行く"],
+          },
+        ],
+      },
+      {
+        title: "ポイント・お買い物",
+        fields: [
+          {
+            id: "points",
+            label: "よく貯めている・使っているポイント",
+            note: "複数選択可",
+            type: "checkbox",
+            options: ["dポイント", "Pontaポイント", "PayPayポイント", "楽天ポイント", "Vポイント", "特になし"],
+          },
+          {
+            id: "pay_service",
+            label: "よく使うスマホ決済",
+            note: "複数選択可",
+            type: "checkbox",
+            options: ["d払い", "au PAY", "PayPay", "楽天ペイ", "Suica・PASMO", "特になし"],
+          },
+        ],
+      },
+      {
+        title: "自宅のインターネット",
+        fields: [
+          {
+            id: "net_company",
+            label: "自宅のインターネットの会社",
+            type: "radio",
+            options: ["ドコモ光", "auひかり", "ソフトバンク光", "楽天ひかり", "NURO光", "フレッツ光(NTT)", "ケーブルテレビ", "home 5G・ホームルーター", "わからない"],
+            other: true,
+          },
+          {
+            id: "net_fee",
+            label: "自宅のインターネットの月額料金",
+            type: "radio",
+            options: ["4,000円未満", "4,000〜5,000円", "5,000〜6,000円", "6,000円以上", "わからない"],
+          },
+          {
+            id: "net_trouble",
+            label: "自宅のインターネットの不満",
+            note: "複数選択可",
+            type: "checkbox",
+            options: ["速度が遅い", "つながりにくい部屋がある", "料金が高い", "途中で切れる", "特になし"],
+          },
+          {
+            id: "net_need",
+            label: "自宅のインターネットの検討",
+            type: "radio",
+            options: ["新しく引きたい", "安い会社に乗り換えたい", "今のままでよい", "相談したい"],
+          },
+          {
+            id: "housing",
+            label: "お住まい",
+            type: "radio",
+            options: ["一戸建て(持ち家)", "一戸建て(賃貸)", "マンション・アパート(持ち家)", "マンション・アパート(賃貸)"],
+          },
+        ],
+      },
+      {
+        title: "ご希望",
+        fields: [
+          {
+            id: "store_or_online",
+            label: "手続きのご希望",
+            type: "radio",
+            options: ["お店で相談しながら手続きしたい", "オンラインの手続きでもよい", "どちらでもよい"],
+          },
+          {
+            id: "priority",
+            label: "見直しで重視したいこと",
+            note: "複数選択可",
+            type: "checkbox",
+            options: ["月々の料金を下げたい", "データ量を増やしたい", "家族の料金をまとめて安くしたい", "自宅のWi-Fiも見直したい", "ポイント・特典を重視したい", "今の電話番号は変えたくない"],
+            other: true,
+          },
+          {
+            id: "notes",
+            label: "その他のご要望",
+            note: "任意",
+            description: "気になっていることや、ご質問があればご自由にお書きください。",
+            type: "textarea",
+            rows: 3,
+          },
+        ],
+      },
+    ],
+  };
+
   // =====================================================
   // 必須にする項目
   // =====================================================
@@ -427,6 +687,13 @@
       "carrier", "payment", "data_transfer",  // 契約手続きと費用に関わる
       "quantity", "budget", "deadline",
     ],
+    plan: [
+      "name", "email", "contact_method",
+      "current_carrier", "contract_years", "holder", "family_count",  // 乗り換えの手続きに関わる
+      "monthly_fee", "installment",                                      // 今の支払いと、乗り換えの費用
+      "data_usage", "home_wifi", "throttle",                             // 合うプランを決める決め手
+      "call_time",                                                       // かけ放題が必要かの判断
+    ],
   };
 
   // =====================================================
@@ -449,6 +716,19 @@
       data_transfer: "電話帳・写真・LINEなどを、新しいスマホに移す作業です。",
       photo: "機種名は、スマホの「設定」→「一般」→「情報」(iPhone)や、「設定」→「デバイス情報」(Android)で確認できます。その画面の写真でも大丈夫です。",
     },
+    plan: {
+      current_carrier: "ahamo・povo・LINEMO は、大手通信会社のオンライン専用の料金プランです。",
+      plan_name: "契約プラン名は、携帯会社のマイページ(アプリ)や、請求書で確認できます。",
+      holder: "契約の名義人が別の方の場合、乗り換えの手続きに名義人の方の同意や来店が必要になることがあります。",
+      installment: "端末代の分割払いが残っている場合、乗り換えると残りの金額をまとめて請求されることがあります。",
+      data_usage: "毎月のデータ使用量は、携帯会社のマイページ(アプリ)や、請求書で確認できます。",
+      home_wifi: "光回線:工事をして引く、自宅用のインターネットです。ホームルーター:コンセントにさすだけで使えるWi-Fiです。",
+      carrier_mail: "携帯会社を乗り換えると、このメールアドレスは原則使えなくなります。使い続けたい場合は、有料の「持ち運び」サービスなどを確認します。",
+      options: "加入しているオプションは、マイページ(アプリ)や請求書の明細で確認できます。使っていないオプションを外すだけで安くなることもあります。",
+      bundle: "携帯と自宅のネットや電気を同じ会社グループにすると、割引になることがあります。",
+      points: "よく使うポイントと同じグループの携帯会社にすると、ポイントが貯まりやすくなることがあります。",
+      call_time: "通話時間は、マイページ(アプリ)や請求書の「通話料」の欄で確認できます。LINEなどアプリの通話は含みません。",
+    },
   };
 
   // =====================================================
@@ -456,6 +736,7 @@
   // =====================================================
   // 例:「デスクトップ」を選んだら、ノートPC用の「画面サイズ」は表示しない
   const HAS_DEVICE = { field: "current_maker", notIn: ["持っていない"] };
+  const HAS_HOME_NET = { field: "home_wifi", in: ["はい(光回線)", "はい(ホームルーター・置くだけWi-Fi)"] };
   const SHOW_IF = {
     pc: {
       photo: HAS_DEVICE,
@@ -467,6 +748,17 @@
       photo: HAS_DEVICE,
       years_used: HAS_DEVICE,
       data_transfer: HAS_DEVICE,
+    },
+    plan: {
+      // 家族がいない場合、家族全体の金額は聞かない
+      family_total: { field: "family_count", notIn: ["", "自分だけ"] },
+      // 分割払いが残っている場合だけ、残りの金額と回数を聞く
+      installment_left: { field: "installment", in: ["はい"] },
+      installment_times: { field: "installment", in: ["はい"] },
+      // 自宅にネットがある場合だけ、会社・料金・不満を聞く
+      net_company: HAS_HOME_NET,
+      net_fee: HAS_HOME_NET,
+      net_trouble: HAS_HOME_NET,
     },
   };
 
@@ -480,7 +772,7 @@
       "型番が書かれたシールや、機種名がわかる画面の写真があると、確認がスムーズです。パスワードや個人情報が写らないようご注意ください。",
   };
 
-  [pc, phone].forEach((form) => {
+  [pc, phone, plan].forEach((form) => {
     // 連絡先は最後に聞く(製品の質問から始めたほうが、最後まで答えてもらいやすいため)
     form.sections.push(form.sections.shift());
 
@@ -501,5 +793,11 @@
     });
   });
 
-  window.HEARING_FORMS = { pc, phone };
+  // 機種のシートの文言(料金見直しのシートと書き分けるため)
+  [pc, phone].forEach((form) => {
+    form.leadIntro = "最適な機種をご提案・選定するため、";
+    form.proposal = "ご希望に合った機種をご提案します";
+  });
+
+  window.HEARING_FORMS = { pc, phone, plan };
 })();

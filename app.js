@@ -36,6 +36,12 @@
     doneSummary: $("doneSummary"),
     printBtn: $("printBtn"),
     againBtn: $("againBtn"),
+    leadIntro: $("leadIntro"),
+    flowProposal: $("flowProposal"),
+    flowProposalText: $("flowProposalText"),
+    upsell: $("upsell"),
+    upsellBtn: $("upsellBtn"),
+    switcher: document.querySelector(".switcher"),
   };
 
   // 入力できる文字数の上限(いたずらで大量の文字を送られないようにする)
@@ -302,15 +308,19 @@
     const def = forms[key] || forms.pc;
     current = def;
 
-    // 「スマートフォン/買い替え…」の切れ目でだけ改行されるようにする
+    // 「スマートフォン/買い替え…」「携帯料金見直し/ヒアリングシート」の切れ目でだけ改行されるようにする
     els.title.textContent = "";
-    def.title.split("買い替え").forEach((part, i) => {
+    const breakAt = def.title.includes("買い替え") ? "買い替え" : "ヒアリングシート";
+    def.title.split(breakAt).forEach((part, i) => {
       if (i > 0) {
         els.title.appendChild(document.createElement("wbr"));
-        part = "買い替え" + part;
+        part = breakAt + part;
       }
       els.title.appendChild(document.createTextNode(part));
     });
+    els.leadIntro.textContent = def.leadIntro || "";
+    // 料金見直しのシートでは、製品の切り替えボタンを出さない
+    els.switcher.hidden = Boolean(def.hideSwitcher);
     document.title = def.title;
     els.tabs.forEach((b) => b.setAttribute("aria-selected", String(b.dataset.form === def.key)));
 
@@ -613,7 +623,8 @@
     const d = new Date();
     const pad = (n) => String(n).padStart(2, "0");
     const rand = String(Math.floor(Math.random() * 10000)).padStart(4, "0");
-    return `${current.key === "pc" ? "PC" : "SP"}-${String(d.getFullYear()).slice(2)}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${rand}`;
+    const prefix = { pc: "PC", phone: "SP", plan: "MP" }[current.key] || "PC";
+    return `${prefix}-${String(d.getFullYear()).slice(2)}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${rand}`;
   }
 
   // 受信プログラムに「この受付番号は届いていますか?」と問い合わせる
@@ -786,6 +797,16 @@
     }
     els.shopContact.hidden = !config.SHOP_TEL;
 
+    // 3つ目の流れ:機種なら「おすすめの機種」、料金見直しなら「合ったプラン」
+    els.flowProposal.textContent = current.proposal || "ご希望に合った機種をご提案します";
+    els.flowProposalText.textContent =
+      current.key === "plan"
+        ? "今の料金と使い方を比べて、無理のない見直し方法をご紹介します。"
+        : "ご予算・用途に合わせて、おすすめの機種をいくつかご紹介します。";
+
+    // 機種のヒアリングを送った方には、携帯料金・Wi-Fiの見直しもおすすめする
+    els.upsell.hidden = current.key === "plan" || !forms.plan;
+
     els.doneSummary.innerHTML = "";
     els.doneSummary.appendChild(el("p", { class: "muted", text: `受付番号:${no}` }));
     els.doneSummary.appendChild(buildAnswerList(answers, false));
@@ -843,6 +864,11 @@
     window.print();
   });
   els.againBtn.addEventListener("click", () => resetForm(current.key));
+  // 料金見直しは詳しく聞くほど提案の精度が上がるため、「しっかり版」で開く
+  els.upsellBtn.addEventListener("click", () => {
+    setMode("full");
+    resetForm("plan");
+  });
 
   // 入力の途中でページを閉じようとしたら、確認を出す
   window.addEventListener("beforeunload", (e) => {
