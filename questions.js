@@ -493,6 +493,8 @@
         field.required = REQUIRED[form.key].includes(field.id);
         if (HELP[form.key][field.id]) field.help = HELP[form.key][field.id];
         if (SHOW_IF[form.key][field.id]) field.showIf = SHOW_IF[form.key][field.id];
+        // メーカーを選んだら、機種(シリーズ)などを追加で聞く(models.js)
+        if (field.id === "current_maker") field.followUps = window.MODEL_FOLLOWUPS[form.key];
         // 初めて買う方も「買い替えの理由」に答えられるようにする
         if (field.id === "reason") field.options = ["初めて購入する"].concat(field.options);
       });
