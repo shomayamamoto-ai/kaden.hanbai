@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <title>買い替えヒアリングシート</title>
-  <link rel="stylesheet" href="style.css?v=20261109b">
+  <link rel="stylesheet" href="style.css?v=20261109c">
 </head>
 <body>
   <main class="sheet">
@@ -29,13 +29,16 @@
     <!-- ===== 入力画面 ===== -->
     <div id="inputView">
       <nav class="switcher" aria-label="ヒアリングシートの種類">
-        <p class="switcher-label">ご相談の製品を選んでください</p>
+        <p class="switcher-label">ご相談の内容を選んでください</p>
         <div class="switcher-buttons" role="tablist">
           <button type="button" role="tab" data-form="pc">
-            <span class="icon" aria-hidden="true">💻</span>パソコン
+            <span class="icon" aria-hidden="true">💻</span><span>パソコン</span>
           </button>
           <button type="button" role="tab" data-form="phone">
-            <span class="icon" aria-hidden="true">📱</span>スマートフォン
+            <span class="icon" aria-hidden="true">📱</span><span>スマート<wbr>フォン</span>
+          </button>
+          <button type="button" role="tab" data-form="plan">
+            <span class="icon" aria-hidden="true">📶</span><span>携帯料金<wbr>見直し</span>
           </button>
         </div>
       </nav>
@@ -146,7 +149,7 @@
           <li>ご家族の分や、<wbr>ご自宅のネットもまとめて相談OK</li>
         </ul>
         <button type="button" class="btn-primary" id="upsellBtn">料金見直しのヒアリングに進む(約3分)</button>
-        <p class="muted">お名前などは、<wbr>お手数ですがもう一度ご入力ください。</p>
+        <p class="muted">お名前とメールアドレスは、<wbr>入力済みの状態で始まります。</p>
       </div>
 
       <details class="summary">
@@ -161,10 +164,10 @@
     </section>
   </main>
 
-  <script src="config.js?v=20261109b"></script>
-  <script src="models.js?v=20261109b"></script>
-  <script src="accessories.js?v=20261109b"></script>
-  <script src="questions.js?v=20261109b"></script>
-  <script src="app.js?v=20261109b"></script>
+  <script src="config.js?v=20261109c"></script>
+  <script src="models.js?v=20261109c"></script>
+  <script src="accessories.js?v=20261109c"></script>
+  <script src="questions.js?v=20261109c"></script>
+  <script src="app.js?v=20261109c"></script>
 </body>
 </html>

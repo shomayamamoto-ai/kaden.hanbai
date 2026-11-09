@@ -41,7 +41,6 @@
     flowProposalText: $("flowProposalText"),
     upsell: $("upsell"),
     upsellBtn: $("upsellBtn"),
-    switcher: document.querySelector(".switcher"),
   };
 
   // 入力できる文字数の上限(いたずらで大量の文字を送られないようにする)
@@ -319,8 +318,6 @@
       els.title.appendChild(document.createTextNode(part));
     });
     els.leadIntro.textContent = def.leadIntro || "";
-    // 料金見直しのシートでは、製品の切り替えボタンを出さない
-    els.switcher.hidden = Boolean(def.hideSwitcher);
     document.title = def.title;
     els.tabs.forEach((b) => b.setAttribute("aria-selected", String(b.dataset.form === def.key)));
 
@@ -865,9 +862,16 @@
   });
   els.againBtn.addEventListener("click", () => resetForm(current.key));
   // 料金見直しは詳しく聞くほど提案の精度が上がるため、「しっかり版」で開く
+  // お名前とメールアドレスだけは引き継ぐ(入力の手間を減らすため。ほかの回答は引き継がない)
   els.upsellBtn.addEventListener("click", () => {
+    const carry = { name: pick(lastAnswers || [], "name"), email: pick(lastAnswers || [], "email") };
     setMode("full");
     resetForm("plan");
+    Object.entries(carry).forEach(([id, value]) => {
+      const input = els.form.elements["f_" + id];
+      if (input && value) input.value = value;
+    });
+    refresh();
   });
 
   // 入力の途中でページを閉じようとしたら、確認を出す

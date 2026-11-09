@@ -411,7 +411,6 @@
     title: "携帯料金見直しヒアリングシート",
     leadIntro: "あなたに合った料金プランやWi-Fiをご提案するため、",
     proposal: "ご利用状況に合ったプランをご提案します",
-    hideSwitcher: true,
     sections: [
       contactSection,
       {

@@ -85,6 +85,7 @@ h1 { word-break: keep-all; overflow-wrap: anywhere; margin: 0 0 12px; color: var
   cursor: pointer;
 }
 .switcher button .icon { margin-right: 6px; }
+.switcher button { word-break: keep-all; overflow-wrap: normal; } /* 指定した切れ目でだけ折り返す */
 .switcher button[aria-selected="true"] { color: #fff; background: var(--accent); }
 
 /* セクション */
@@ -382,6 +383,9 @@ html.large-text .choice input { width: 20px; height: 20px; margin-top: 5px; }
   /* 製品と質問量のボタンは、スマホでも横に2つ並べる */
   .switcher-buttons, .mode-buttons { flex-wrap: nowrap; gap: 8px; }
   .switcher button, .mode-buttons button { flex: 1 1 0; min-width: 0; max-width: none; padding-left: 8px; padding-right: 8px; }
+  /* 3つの切り替えボタンは、アイコンを上に置いて文字を1行に収める */
+  .switcher button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; font-size: 13px; line-height: 1.3; }
+  .switcher button .icon { margin: 0; font-size: 18px; }
   .mode-buttons button span { font-size: 11px; }
 }
 
@@ -391,7 +395,7 @@ html.large-text .choice input { width: 20px; height: 20px; margin-top: 5px; }
 
 /* とても幅の狭いスマホでは、製品ボタンのアイコンを省いて1行に収める */
 @media (max-width: 360px) {
-  .switcher button .icon { display: none; }
+  .switcher button { font-size: 12px; }
 }
 
 /* ===== 送信後のおすすめ(携帯料金・Wi-Fiの見直し) ===== */
