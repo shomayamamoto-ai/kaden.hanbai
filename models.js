@@ -134,5 +134,22 @@
     ],
   };
 
-  window.MODEL_FOLLOWUPS = { pc, phone };
+  // ---------- タブレット ----------
+  // 毎年新しい世代が出るため、機種は「シリーズ」で聞き、古さは「使用年数」の質問で確認します。
+  const TABLET_STORAGE = one("容量", ["64GB以下", "128GB", "256GB", "512GB以上", UNKNOWN]);
+  const tablet = {
+    "iPad": [
+      one("種類", ["iPad Pro", "iPad Air", "iPad(無印)", "iPad mini", UNKNOWN], true),
+      one("通信", ["Wi-Fiモデル(家などのWi-Fiで使う)", "セルラーモデル(SIMを入れて外でも使える)", UNKNOWN]),
+      TABLET_STORAGE,
+    ],
+    "Galaxy Tab": [one("種類", ["Galaxy Tab S シリーズ", "Galaxy Tab A シリーズ", UNKNOWN], true), TABLET_STORAGE],
+    "Fire タブレット(Amazon)": [one("種類", ["Fire 7", "Fire HD 8", "Fire HD 10", "Fire Max 11", "Fire キッズモデル", UNKNOWN], true)],
+    "Lenovo": [one("種類", ["Lenovo Tab シリーズ", "Lenovo Tab P シリーズ(上位モデル)", "Yoga Tab シリーズ", UNKNOWN], true), TABLET_STORAGE],
+    "NEC(LAVIE Tab)": [one("種類", ["LAVIE Tab T シリーズ", "LAVIE Tab E シリーズ", UNKNOWN], true), TABLET_STORAGE],
+    "Xiaomi・Redmi": [one("種類", ["Xiaomi Pad シリーズ", "Redmi Pad シリーズ", UNKNOWN], true), TABLET_STORAGE],
+    "Microsoft(Surface)": [one("種類", ["Surface Pro", "Surface Go", UNKNOWN], true)],
+  };
+
+  window.MODEL_FOLLOWUPS = { pc, phone, tablet };
 })();

@@ -620,7 +620,7 @@
     const d = new Date();
     const pad = (n) => String(n).padStart(2, "0");
     const rand = String(Math.floor(Math.random() * 10000)).padStart(4, "0");
-    const prefix = { pc: "PC", phone: "SP", plan: "MP" }[current.key] || "PC";
+    const prefix = { pc: "PC", phone: "SP", tablet: "TB", plan: "MP" }[current.key] || "PC";
     return `${prefix}-${String(d.getFullYear()).slice(2)}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${rand}`;
   }
 

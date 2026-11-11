@@ -402,6 +402,184 @@
     ],
   };
 
+  // ======================= タブレット =======================
+  const tablet = {
+    key: "tablet",
+    name: "タブレット",
+    title: "タブレット買い替えヒアリングシート",
+    sections: [
+      contactSection,
+      {
+        title: "使う方について",
+        fields: [
+          {
+            id: "user",
+            label: "主に使う方",
+            type: "radio",
+            options: ["ご本人", "ご家族(お子さま)", "ご家族(ご高齢の方)", "家族みんなで共用"],
+            other: true,
+          },
+          { id: "age", label: "使う方のご年代", type: "radio", options: ["10歳未満", "10代", "20〜30代", "40〜50代", "60〜70代", "80代以上", "答えたくない"] },
+          { id: "skill", label: "タブレットやスマホの操作", type: "radio", options: SKILL },
+        ],
+      },
+      {
+        title: "現在の利用状況と買い替え理由",
+        fields: [
+          {
+            id: "current_maker",
+            label: "現在お使いのタブレット",
+            type: "radio",
+            options: ["iPad", "Galaxy Tab", "Fire タブレット(Amazon)", "Lenovo", "NEC(LAVIE Tab)", "Xiaomi・Redmi", "Microsoft(Surface)", "わからない", "持っていない"],
+            other: true,
+          },
+          { id: "years_used", label: "使用年数", type: "radio", options: YEARS },
+          {
+            id: "reason",
+            label: "買い替えの理由",
+            note: "複数選択可",
+            type: "checkbox",
+            options: [
+              "故障した・画面が割れた",
+              "バッテリーがもたない",
+              "動作が遅い・固まる",
+              "容量(保存できる量)が足りない",
+              "OS・アプリのサポート終了",
+              "画面を大きく(小さく)したい",
+              "ペンやキーボードを使いたい",
+              "子ども用に新しく用意したい",
+            ],
+            other: true,
+          },
+        ],
+      },
+      {
+        title: "新しいタブレットの希望・用途",
+        fields: [
+          {
+            id: "os",
+            label: "希望の種類",
+            type: "radio",
+            options: ["iPad", "Androidタブレット", "Windowsタブレット(Surface など)", "Fire タブレット(Amazon)", "こだわりなし・相談して決めたい"],
+          },
+          {
+            id: "usage",
+            label: "主な用途",
+            note: "複数選択可",
+            type: "checkbox",
+            options: [
+              "動画視聴(YouTube・Netflixなど)",
+              "電子書籍・雑誌・マンガ",
+              "インターネット・SNS",
+              "ビデオ通話",
+              "お子さまの学習・動画",
+              "勉強・ノート(学生)",
+              "イラスト・お絵描き",
+              "仕事・資料の閲覧",
+              "ノートパソコンの代わり",
+              "ゲーム",
+              "写真の閲覧・整理",
+            ],
+            other: true,
+          },
+          {
+            id: "place",
+            label: "主に使う場所",
+            note: "複数選択可",
+            type: "checkbox",
+            options: ["自宅", "外出先・移動中", "職場・学校", "車の中"],
+          },
+        ],
+      },
+      {
+        title: "スペック・機能の希望",
+        note: "必須以外はわかる場合のみ",
+        fields: [
+          {
+            id: "size",
+            label: "画面の大きさ",
+            type: "radio",
+            options: ["小さめ(8インチ前後・片手で持てる)", "標準(10〜11インチ)", "大きめ(12インチ以上)", "わからない"],
+          },
+          {
+            id: "connectivity",
+            label: "外でのインターネット",
+            type: "radio",
+            options: ["Wi-Fiだけでよい(家などで使う)", "外でも使いたい(SIMを入れるモデル)", "スマホのテザリングで使う", "わからない"],
+          },
+          {
+            id: "storage",
+            label: "保存容量(ストレージ)",
+            type: "radio",
+            options: ["64GB以下(動画視聴・読書中心)", "128GB(標準的)", "256GB以上(写真・動画・アプリが多い)", "わからない"],
+          },
+          {
+            id: "features",
+            label: "絶対に必要な機能",
+            note: "複数選択可",
+            type: "checkbox",
+            options: [
+              "ペンで書ける",
+              "キーボードをつなげる",
+              "指紋・顔認証",
+              "防水",
+              "子ども向けの使用制限(ペアレンタルコントロール)",
+              "バッテリー長持ち",
+              "スマホと同じアプリを使いたい",
+              "特になし・わからない",
+            ],
+            other: true,
+          },
+          { id: "color", label: "希望の色", type: "radio", options: ["黒系", "白系", "シルバー・グレー", "青系", "ピンク・紫系", "その他の色", "こだわりなし"] },
+          { id: "data_transfer", label: "古いタブレットからのデータ移行", type: "radio", options: TRANSFER },
+          {
+            id: "support",
+            label: "あると助かるサポート",
+            note: "複数選択可",
+            type: "checkbox",
+            options: ["初期設定", "Wi-Fiの接続", "アプリの設定", "使い方の説明", "子ども向けの使用制限の設定", "補償サービス"],
+          },
+        ],
+      },
+      {
+        title: "予算と納期",
+        fields: [
+          { id: "quantity", label: "購入台数", type: "radio", options: QUANTITY },
+          {
+            id: "budget",
+            label: "想定ご予算(本体・税込)",
+            type: "radio",
+            options: ["2万円未満", "2〜4万円", "4〜7万円", "7〜10万円", "10〜15万円", "15万円以上", "わからない・相談したい"],
+          },
+          { id: "deadline", label: "希望納期", type: "radio", options: DEADLINE },
+        ],
+      },
+      {
+        title: "その他・特記事項",
+        fields: [
+          {
+            id: "accessories",
+            label: "一緒に購入したいもの",
+            note: "複数選択可",
+            description: "選んだ商品について、すぐ下に追加の質問が表示されます(わかる範囲でお答えください)。",
+            options: Object.keys(FOLLOWUPS.tablet),
+            followUps: FOLLOWUPS.tablet,
+            type: "checkbox",
+            other: true,
+          },
+          {
+            id: "notes",
+            label: "その他のご要望",
+            note: "任意",
+            description: "特定のメーカーの希望や、家族の分もまとめて相談したいなど、選択肢にないご要望があればご自由にお書きください。",
+            type: "textarea",
+            rows: 3,
+          },
+        ],
+      },
+    ],
+  };
+
   // ======================= 携帯料金見直し =======================
   // 機種のヒアリングを送ったあとに「携帯料金・Wi-Fiの見直しもいかがですか?」と案内するシート
   const CARRIERS = ["ドコモ", "au", "ソフトバンク", "楽天モバイル", "ahamo・povo・LINEMO", "UQモバイル・ワイモバイル", "その他の格安SIM", "わからない"];
@@ -686,6 +864,15 @@
       "carrier", "payment", "data_transfer",  // 契約手続きと費用に関わる
       "quantity", "budget", "deadline",
     ],
+    tablet: [
+      "name", "email", "contact_method",
+      "user", "age",
+      "current_maker", "reason",
+      "os", "usage",
+      "size", "connectivity",                 // 機種を絞る決め手
+      "data_transfer",
+      "quantity", "budget", "deadline",
+    ],
     plan: [
       "name", "email", "contact_method",
       "current_carrier", "contract_years", "holder", "family_count",  // 乗り換えの手続きに関わる
@@ -714,6 +901,14 @@
       carrier: "SIMフリー:通信会社とは契約せず、どの会社でも使える端末だけを購入する方法です。",
       data_transfer: "電話帳・写真・LINEなどを、新しいスマホに移す作業です。",
       photo: "機種名は、スマホの「設定」→「一般」→「情報」(iPhone)や、「設定」→「デバイス情報」(Android)で確認できます。その画面の写真でも大丈夫です。",
+    },
+    tablet: {
+      os: "iPad:Apple社のタブレットです。Androidタブレット:Galaxy Tab などで、Androidスマホと同じアプリが使えます。Fire タブレット:Amazonのタブレットで、動画や読書向けです(Google Play のアプリは使えません)。",
+      connectivity: "SIMを入れるモデル(セルラーモデル)は、外でもインターネットが使えますが、通信の契約が別に必要です。テザリングは、スマホの通信をタブレットで使う方法です。",
+      storage: "写真・動画・アプリを保存できる量です。動画を見るだけなら少なめ、写真や動画をたくさん保存するなら多めがおすすめです。",
+      features: "ペアレンタルコントロール:お子さまが使える時間やアプリを、保護者が制限できる機能です。",
+      data_transfer: "古いタブレットに入っている写真・アプリのデータなどを、新しいタブレットに移す作業です。",
+      photo: "機種名は「設定」→「一般」→「情報」(iPad)や、「設定」→「タブレット情報」(Android)で確認できます。その画面の写真でも大丈夫です。",
     },
     plan: {
       current_carrier: "ahamo・povo・LINEMO は、大手通信会社のオンライン専用の料金プランです。",
@@ -748,6 +943,11 @@
       years_used: HAS_DEVICE,
       data_transfer: HAS_DEVICE,
     },
+    tablet: {
+      photo: HAS_DEVICE,
+      years_used: HAS_DEVICE,
+      data_transfer: HAS_DEVICE,
+    },
     plan: {
       // 家族がいない場合、家族全体の金額は聞かない
       family_total: { field: "family_count", notIn: ["", "自分だけ"] },
@@ -771,7 +971,7 @@
       "型番が書かれたシールや、機種名がわかる画面の写真があると、確認がスムーズです。パスワードや個人情報が写らないようご注意ください。",
   };
 
-  [pc, phone, plan].forEach((form) => {
+  [pc, phone, tablet, plan].forEach((form) => {
     // 連絡先は最後に聞く(製品の質問から始めたほうが、最後まで答えてもらいやすいため)
     form.sections.push(form.sections.shift());
 
@@ -793,10 +993,10 @@
   });
 
   // 機種のシートの文言(料金見直しのシートと書き分けるため)
-  [pc, phone].forEach((form) => {
+  [pc, phone, tablet].forEach((form) => {
     form.leadIntro = "最適な機種をご提案・選定するため、";
     form.proposal = "ご希望に合った機種をご提案します";
   });
 
-  window.HEARING_FORMS = { pc, phone, plan };
+  window.HEARING_FORMS = { pc, phone, tablet, plan };
 })();

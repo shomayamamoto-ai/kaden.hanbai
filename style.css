@@ -71,11 +71,11 @@ h1 { word-break: keep-all; overflow-wrap: anywhere; margin: 0 0 12px; color: var
 /* 製品の切り替え */
 .switcher { margin: 0 0 28px; text-align: center; }
 .switcher-label { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
-.switcher-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.switcher-buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: nowrap; }
 .switcher button {
-  flex: 1 1 180px;
-  max-width: 260px;
-  padding: 12px 16px;
+  flex: 1 1 0; /* 4つのボタンを横一列に、同じ幅で並べる */
+  min-width: 0;
+  padding: 12px 8px;
   font: inherit;
   font-weight: bold;
   color: var(--accent);
@@ -383,9 +383,7 @@ html.large-text .choice input { width: 20px; height: 20px; margin-top: 5px; }
   /* 製品と質問量のボタンは、スマホでも横に2つ並べる */
   .switcher-buttons, .mode-buttons { flex-wrap: nowrap; gap: 8px; }
   .switcher button, .mode-buttons button { flex: 1 1 0; min-width: 0; max-width: none; padding-left: 8px; padding-right: 8px; }
-  /* 3つの切り替えボタンは、アイコンを上に置いて文字を1行に収める */
-  .switcher button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; font-size: 13px; line-height: 1.3; }
-  .switcher button .icon { margin: 0; font-size: 18px; }
+
   .mode-buttons button span { font-size: 11px; }
 }
 
@@ -395,7 +393,7 @@ html.large-text .choice input { width: 20px; height: 20px; margin-top: 5px; }
 
 /* とても幅の狭いスマホでは、製品ボタンのアイコンを省いて1行に収める */
 @media (max-width: 360px) {
-  .switcher button { font-size: 12px; }
+  .switcher button { font-size: 13px; gap: 4px; }
 }
 
 /* ===== 送信後のおすすめ(携帯料金・Wi-Fiの見直し) ===== */
@@ -412,3 +410,13 @@ html.large-text .choice input { width: 20px; height: 20px; margin-top: 5px; }
 .upsell .btn-primary { width: 100%; min-width: 0; }
 .upsell .muted { margin: 8px 0 0; text-align: center; }
 @media print { .upsell { display: none !important; } }
+
+/* 4つの切り替えボタンは、スマホや小さめの画面では2列×2段に並べる */
+@media (max-width: 760px) {
+  .switcher-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .switcher button { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 6px; font-size: 14px; line-height: 1.3; }
+  .switcher button .icon { margin: 0; font-size: 18px; }
+}
+@media (max-width: 360px) {
+  .switcher button { font-size: 13px; gap: 4px; }
+}

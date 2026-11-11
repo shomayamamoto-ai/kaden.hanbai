@@ -45,9 +45,9 @@ var PHOTO_FOLDER_NAME = "ヒアリングシート写真";
 var STATUS_OPTIONS = ["未対応", "連絡済み", "提案済み", "成約", "失注", "対応不要"];
 // ================
 
-var FORM_SHEETS = ["パソコン", "スマートフォン", "携帯料金見直し"];
-var ESTIMATE_SHEETS = ["パソコン", "スマートフォン"]; // 見積もりのたたき台を作れるシート
-var FORM_NAMES = { pc: "パソコン", phone: "スマートフォン", plan: "携帯料金見直し" };
+var FORM_SHEETS = ["パソコン", "スマートフォン", "タブレット", "携帯料金見直し"];
+var ESTIMATE_SHEETS = ["パソコン", "スマートフォン", "タブレット"]; // 見積もりのたたき台を作れるシート
+var FORM_NAMES = { pc: "パソコン", phone: "スマートフォン", tablet: "タブレット", plan: "携帯料金見直し" };
 var FIXED_HEADERS = ["受信日時", "受付番号", "対応状況", "対応メモ", "提案のヒント", "写真", "回答の種類"];
 var STATUS_TTL = 21600; // 受付状況を覚えておく時間(秒)= 6時間
 
@@ -62,7 +62,7 @@ function doPost(e) {
   } catch (err) {
     return json_({ ok: false, error: "invalid" });
   }
-  if (!data || !/^(PC|SP|MP)-\d{6}-\d{4}$/.test(String(data.receiptNo || ""))) {
+  if (!data || !/^(PC|SP|TB|MP)-\d{6}-\d{4}$/.test(String(data.receiptNo || ""))) {
     return json_({ ok: false, error: "invalid" });
   }
 
@@ -361,6 +361,8 @@ function makeHints_(data) {
     if (has("reason", "Windows 10")) {
       hints.push("Windows 10 のサポート終了による買い替えです(2025年10月14日に終了済み)。データ移行とあわせてご提案ください。");
     }
+  } else if (data.formType === "tablet") {
+    makeTabletHints_(a, has, any, hints);
   } else if (data.formType === "plan") {
     makePlanHints_(a, has, any, hints);
   } else {
@@ -398,6 +400,37 @@ function makeHints_(data) {
     }
   }
   return hints;
+}
+
+// タブレットのヒント
+function makeTabletHints_(a, has, any, hints) {
+  if (has("os", "Fire")) {
+    hints.push("Fire タブレットをご希望です。Google Play のアプリは使えないため、使いたいアプリが対応しているか確認してください。");
+  }
+  if (has("features", "スマホと同じアプリ")) {
+    hints.push("スマホと同じアプリを使いたいご希望です。お使いのスマホ(iPhone/Android)と同じ種類のタブレットをご提案ください。");
+  }
+  if (has("features", "ペンで書ける") || has("usage", "イラスト") || has("usage", "勉強・ノート")) {
+    hints.push("ペンを使う用途があります。ペンに対応した機種か、ペンが別売りかを確認し、ペン代も含めてご提案ください。");
+  }
+  if (has("usage", "ノートパソコンの代わり") || has("features", "キーボード")) {
+    hints.push("ノートパソコンの代わり・キーボードのご希望があります。キーボード付きカバーの対応や、Windowsタブレットも候補にしてください。");
+  }
+  if ((has("place", "外出先") || has("place", "車の中")) && has("connectivity", "Wi-Fiだけ")) {
+    hints.push("外でも使う予定ですが、Wi-Fiモデルのご希望です。テザリングやモバイルWi-Fiの必要性を確認してください。");
+  }
+  if (has("connectivity", "SIMを入れる")) {
+    hints.push("SIMを入れるモデル(セルラーモデル)のご希望です。通信の契約(データプラン)も必要なので、料金見直しもあわせてご提案できます。");
+  }
+  if (has("user", "お子さま") || any("age", ["10歳未満", "10代"])) {
+    hints.push("お子さま向けです。使用時間やアプリの制限(ペアレンタルコントロール)と、耐衝撃ケースをご提案ください。");
+  }
+  if (has("usage", "ゲーム") && has("budget", "2万円未満")) {
+    hints.push("ゲームの用途に対して、ご予算が2万円未満です。快適に動くか、予算の再確認をおすすめします。");
+  }
+  if (has("storage", "わからない") && (has("usage", "写真") || has("usage", "イラスト"))) {
+    hints.push("写真・イラストの用途があります。128GB以上の容量がおすすめです。");
+  }
 }
 
 // 携帯料金見直しのヒント
@@ -618,6 +651,9 @@ var SUMMARY_ITEMS = [
   "主な用途",
   "想定ご予算(税込)",
   "想定ご予算(端末代・税込)",
+  "想定ご予算(本体・税込)",
+  "希望の種類",
+  "画面の大きさ",
   "一緒に購入したいもの",
   "あると助かるサポート",
   "現在の携帯会社",
@@ -691,7 +727,7 @@ function createEstimate() {
   var sheet = ss.getActiveSheet();
   var rowNo = sheet.getActiveRange() ? sheet.getActiveRange().getRow() : 0;
   if (ESTIMATE_SHEETS.indexOf(sheet.getName()) === -1 || rowNo < 2) {
-    alert_("「パソコン」または「スマートフォン」のシートで、見積もりを作りたいお客様の行を選んでから実行してください。");
+    alert_("「パソコン」「スマートフォン」「タブレット」のいずれかのシートで、見積もりを作りたいお客様の行を選んでから実行してください。");
     return null;
   }
   var h = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(String);
@@ -716,7 +752,7 @@ function createEstimate() {
       .join(" / ");
     lines.push([item, 1, notes]);
   });
-  if (get("古いパソコンからのデータ移行") === "お願いしたい" || get("古いスマホからのデータ移行") === "お願いしたい") {
+  if (["古いパソコンからのデータ移行", "古いスマホからのデータ移行", "古いタブレットからのデータ移行"].some(function (l) { return get(l) === "お願いしたい"; })) {
     lines.push(["データ移行", qty, ""]);
   }
   list("あると助かるサポート").forEach(function (item) { lines.push([item, 1, "サポート"]); });
@@ -735,7 +771,7 @@ function createEstimate() {
     ["お名前", safe_(get("お名前") + " 様"), "", "", ""],
     ["受付番号", safe_(no), "", "", ""],
     ["作成日", Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd"), "", "", ""],
-    ["ご予算", safe_(get("想定ご予算(税込)") || get("想定ご予算(端末代・税込)")), "", "", ""],
+    ["ご予算", safe_(get("想定ご予算(税込)") || get("想定ご予算(端末代・税込)") || get("想定ご予算(本体・税込)")), "", "", ""],
     ["", "", "", "", ""],
     ["品目", "数量", "単価(税込)", "金額", "備考"],
   ];
