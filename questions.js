@@ -403,6 +403,45 @@
   };
 
   // ======================= タブレット =======================
+  // 「主な用途」で選んだものごとに、詳しく聞く追加質問
+  const uOne = (label, options, other) => ({ label, type: "radio", options, other: Boolean(other) });
+  const uMany = (label, options, other) => ({ label, type: "checkbox", options, note: "複数選択可", other: Boolean(other) });
+  const TABLET_USAGE_FOLLOWUPS = {
+    "動画視聴(YouTube・Netflixなど)": [
+      uMany("よく見るサービス", ["YouTube", "Netflix", "Amazon プライム・ビデオ", "Disney+", "TVer", "U-NEXT", "ABEMA"], true),
+      uOne("動画を保存して、外で見ることは?", ["よくある", "ときどきある", "ない"]),
+    ],
+    "電子書籍・雑誌・マンガ": [
+      uMany("よく使うサービス", ["Kindle", "楽天Kobo", "マンガアプリ", "雑誌の読み放題", "図書館の電子書籍"], true),
+      uOne("マンガを見開き(2ページ)で読みたい?", ["読みたい(大きめの画面がおすすめ)", "1ページずつでよい", "わからない"]),
+    ],
+    "お子さまの学習・動画": [
+      uOne("お子さまの学年", ["未就学", "小学校低学年", "小学校高学年", "中学生", "高校生"]),
+      uMany("使う予定のもの", ["学校の課題・宿題", "通信教育のアプリ", "学習アプリ", "動画(YouTubeなど)", "まだ決まっていない"]),
+      uMany("制限したいこと", ["使う時間", "使えるアプリ・課金", "見られるサイト", "特になし"]),
+    ],
+    "勉強・ノート(学生)": [
+      uMany("使う場面", ["授業のノート", "参考書・PDFへの書き込み", "資格の勉強", "レポート作成"]),
+      uMany("使いたいノートアプリ", ["GoodNotes", "Notability", "OneNote", "まだ決まっていない"], true),
+    ],
+    "イラスト・お絵描き": [
+      uMany("使いたいアプリ", ["Procreate", "CLIP STUDIO PAINT", "アイビスペイント", "Adobe Fresco・Photoshop", "まだ決まっていない"], true),
+      uOne("イラストの経験", ["これから始める", "趣味で続けている", "仕事・本格的に描く"]),
+    ],
+    "仕事・資料の閲覧": [
+      uMany("使うもの", ["Word・Excel・PowerPoint", "Teams・Zoomなどの会議", "PDFの閲覧・書き込み", "社内システム", "メール"], true),
+      uOne("会社の指定やセキュリティのルール", ["ある", "ない", "わからない"]),
+    ],
+    "ノートパソコンの代わり": [
+      uMany("やりたいこと", ["文書作成", "表計算", "インターネット・メール", "写真・動画の編集", "オンライン会議"], true),
+      uOne("キーボードやマウスを使いたい?", ["使いたい", "画面のタッチだけでよい", "わからない"]),
+    ],
+    "ゲーム": [
+      uMany("遊ぶゲームの種類", ["パズルなどの軽いゲーム", "RPG・アクション(3D)", "オンライン対戦", "お子さま向けのゲーム"], true),
+      uOne("1日に遊ぶ時間", ["1時間未満", "1〜3時間", "3時間以上"]),
+    ],
+  };
+
   const tablet = {
     key: "tablet",
     name: "タブレット",
@@ -481,6 +520,14 @@
               "写真の閲覧・整理",
             ],
             other: true,
+            description: "選んだ用途について、すぐ下に追加の質問が表示されます。",
+            followUps: TABLET_USAGE_FOLLOWUPS,
+          },
+          {
+            id: "daily_hours",
+            label: "1日に使う時間",
+            type: "radio",
+            options: ["1時間未満", "1〜3時間", "3時間以上", "わからない"],
           },
           {
             id: "place",
@@ -488,6 +535,35 @@
             note: "複数選択可",
             type: "checkbox",
             options: ["自宅", "外出先・移動中", "職場・学校", "車の中"],
+          },
+        ],
+      },
+      {
+        title: "お使いの機器・環境",
+        fields: [
+          {
+            id: "phone_os",
+            label: "お使いのスマホ",
+            type: "radio",
+            options: ["iPhone", "Android", "ガラケー(携帯電話)", "持っていない", "わからない"],
+          },
+          {
+            id: "pc_os",
+            label: "お使いのパソコン",
+            type: "radio",
+            options: ["Windows", "Mac", "持っていない", "わからない"],
+          },
+          {
+            id: "home_wifi",
+            label: "自宅のWi-Fi",
+            type: "radio",
+            options: ["ある", "ない", "わからない"],
+          },
+          {
+            id: "designated",
+            label: "学校や会社からの指定・推奨の機種",
+            type: "radio",
+            options: ["学校の指定・推奨がある", "会社の指定がある", "ない", "わからない"],
           },
         ],
       },
@@ -530,7 +606,25 @@
             ],
             other: true,
           },
+          {
+            id: "weight",
+            label: "重さ",
+            type: "radio",
+            options: ["軽さを最優先したい", "バランスがよいもの", "重さは気にしない"],
+          },
           { id: "color", label: "希望の色", type: "radio", options: ["黒系", "白系", "シルバー・グレー", "青系", "ピンク・紫系", "その他の色", "こだわりなし"] },
+          {
+            id: "condition",
+            label: "新品・整備済み品",
+            type: "radio",
+            options: ["新品がよい", "整備済み品(メーカー再生品)も検討したい", "中古も検討したい", "相談したい"],
+          },
+          {
+            id: "old_device",
+            label: "今のタブレットはどうしますか?",
+            type: "radio",
+            options: ["下取り・買取に出したい", "処分をお願いしたい", "家族に譲る・手元に残す", "わからない"],
+          },
           { id: "data_transfer", label: "古いタブレットからのデータ移行", type: "radio", options: TRANSFER },
           {
             id: "support",
@@ -869,6 +963,7 @@
       "user", "age",
       "current_maker", "reason",
       "os", "usage",
+      "phone_os", "home_wifi",                // アプリの連携と、通信の準備に関わる
       "size", "connectivity",                 // 機種を絞る決め手
       "data_transfer",
       "quantity", "budget", "deadline",
@@ -903,6 +998,11 @@
       photo: "機種名は、スマホの「設定」→「一般」→「情報」(iPhone)や、「設定」→「デバイス情報」(Android)で確認できます。その画面の写真でも大丈夫です。",
     },
     tablet: {
+      phone_os: "スマホと同じ種類(iPhone なら iPad など)のタブレットにすると、アプリや写真を共有しやすくなります。",
+      home_wifi: "Wi-Fiモデルのタブレットは、Wi-Fiがないとインターネットが使えません。",
+      designated: "学校や会社で使う場合、使える機種や設定が決められていることがあります。",
+      condition: "整備済み品:メーカーなどが点検・修理して販売する製品です。新品より安く、保証が付くものもあります。",
+      daily_hours: "長い時間使う方は、バッテリーが長持ちする機種がおすすめです。",
       os: "iPad:Apple社のタブレットです。Androidタブレット:Galaxy Tab などで、Androidスマホと同じアプリが使えます。Fire タブレット:Amazonのタブレットで、動画や読書向けです(Google Play のアプリは使えません)。",
       connectivity: "SIMを入れるモデル(セルラーモデル)は、外でもインターネットが使えますが、通信の契約が別に必要です。テザリングは、スマホの通信をタブレットで使う方法です。",
       storage: "写真・動画・アプリを保存できる量です。動画を見るだけなら少なめ、写真や動画をたくさん保存するなら多めがおすすめです。",
@@ -947,6 +1047,7 @@
       photo: HAS_DEVICE,
       years_used: HAS_DEVICE,
       data_transfer: HAS_DEVICE,
+      old_device: HAS_DEVICE,
     },
     plan: {
       // 家族がいない場合、家族全体の金額は聞かない

@@ -362,7 +362,7 @@ function makeHints_(data) {
       hints.push("Windows 10 のサポート終了による買い替えです(2025年10月14日に終了済み)。データ移行とあわせてご提案ください。");
     }
   } else if (data.formType === "tablet") {
-    makeTabletHints_(a, has, any, hints);
+    makeTabletHints_(a, has, any, hints, data.answers);
   } else if (data.formType === "plan") {
     makePlanHints_(a, has, any, hints);
   } else {
@@ -403,7 +403,63 @@ function makeHints_(data) {
 }
 
 // タブレットのヒント
-function makeTabletHints_(a, has, any, hints) {
+function makeTabletHints_(a, has, any, hints, answers) {
+  // 用途ごとの追加質問は、見出し名の一部で回答を探す(例:「お子さまの学年」)
+  var byLabel = function (part) {
+    var hit = answers.filter(function (x) { return x.label.indexOf(part) !== -1 && x.value; })[0];
+    return hit ? hit.value : "";
+  };
+
+  var iPhoneUser = has("phone_os", "iPhone");
+  var androidUser = has("phone_os", "Android");
+  if ((iPhoneUser && any("os", ["Android", "Windows", "Fire"])) || (androidUser && has("os", "iPad"))) {
+    hints.push("お使いのスマホ(" + a.phone_os + ")と、希望のタブレット(" + a.os + ")の種類が違います。アプリや写真の共有がしにくくなる点をご説明ください。");
+  } else if (iPhoneUser && has("os", "こだわりなし")) {
+    hints.push("iPhoneをお使いです。アプリや写真を共有しやすい iPad がおすすめです。");
+  } else if (androidUser && has("os", "こだわりなし")) {
+    hints.push("Androidスマホをお使いです。同じアプリが使える Androidタブレットがおすすめです。");
+  }
+  if (has("home_wifi", "ない") && !has("connectivity", "SIMを入れる")) {
+    hints.push("自宅にWi-Fiがありません。Wi-Fiモデルだとインターネットが使えないため、自宅のネット回線か、SIMを入れるモデルをご提案ください。");
+  }
+  if (has("designated", "指定")) {
+    hints.push("学校・会社からの指定・推奨の機種があります(" + a.designated + ")。条件(OS・画面サイズ・キーボードなど)を必ず確認してください。");
+  }
+  if (byLabel("使いたいアプリ").indexOf("Procreate") !== -1 && !has("os", "iPad")) {
+    hints.push("イラストアプリの Procreate は iPad 専用です。iPad 以外をご希望の場合は、別のアプリをご案内ください。");
+  }
+  if (byLabel("イラストの経験").indexOf("本格的") !== -1) {
+    hints.push("本格的にイラストを描く方です。画面の大きさ・ペンの書き心地・処理性能を重視した上位モデルをご提案ください。");
+  }
+  var grade = byLabel("お子さまの学年");
+  if (grade) {
+    hints.push("お子さまの学年:" + grade + "。制限したいこと:" + (byLabel("制限したいこと") || "未回答") + "。設定のサポートもあわせてご提案ください。");
+  }
+  if (byLabel("会社の指定やセキュリティのルール") === "ある") {
+    hints.push("仕事で使う予定で、会社のルールがあります。会社が認めている機種・設定を確認してください。");
+  }
+  if (byLabel("遊ぶゲームの種類").indexOf("3D") !== -1 || byLabel("遊ぶゲームの種類").indexOf("オンライン対戦") !== -1) {
+    hints.push("3Dやオンライン対戦のゲームを遊ぶ予定です。処理性能の高いモデルをご提案ください。");
+  }
+  if (byLabel("見開き").indexOf("読みたい") === 0) {
+    hints.push("マンガを見開きで読みたいご希望です。11インチ以上の画面がおすすめです。");
+  }
+  if (has("daily_hours", "3時間以上")) {
+    hints.push("1日3時間以上使う予定です。バッテリーが長持ちする機種と、充電器をご提案ください。");
+  }
+  if (has("weight", "軽さを最優先") && has("size", "大きめ")) {
+    hints.push("軽さ最優先で、大きめの画面をご希望です。重さと画面の大きさのバランスを確認してください。");
+  }
+  if (has("condition", "整備済み") || has("condition", "中古")) {
+    hints.push("整備済み品・中古もご検討です。バッテリーの状態と、OSのアップデートがいつまで続くかを確認してご提案ください。");
+  }
+  if (has("old_device", "下取り")) {
+    hints.push("今のタブレットの下取り・買取をご希望です。査定と、データの消去(初期化)をご案内ください。");
+  }
+  if (has("old_device", "処分")) {
+    hints.push("今のタブレットの処分をご希望です。データの消去と、引き取りの方法・料金をご案内ください。");
+  }
+
   if (has("os", "Fire")) {
     hints.push("Fire タブレットをご希望です。Google Play のアプリは使えないため、使いたいアプリが対応しているか確認してください。");
   }
