@@ -32,6 +32,17 @@ window.HEARING_CONFIG = {
   // ※ gas/Code.gs の SEND_CUSTOMER_COPY と同じにしてください
   CUSTOMER_MAIL: true,
 
+  // 「個人情報の取り扱いについて」のページ(privacy.html)に表示する内容。
+  // 空欄の項目は、ページに赤字で「(未設定)」と表示されます。公開前に必ず入れてください。
+  PRIVACY: {
+    OPERATOR: "",        // 事業者名(空欄なら SHOP_NAME を使います)
+    ADDRESS: "",         // 所在地
+    REPRESENTATIVE: "",  // 代表者の氏名
+    CONTACT: "",         // お問い合わせ先(例:"電話 03-1234-5678 / メール info@example.com")
+    RETENTION_MONTHS: 12, // 回答を保存する期間(月)。gas/Code.gs の RETENTION_MONTHS と同じにしてください
+    UPDATED: "",         // 最終更新日(例:"2026年11月15日")
+  },
+
   // いたずら送信対策(Cloudflare Turnstile)のサイトキー。
   // 使う場合だけ設定します(手順は docs/SETUP.md)。空欄なら使いません。
   TURNSTILE_SITE_KEY: "",

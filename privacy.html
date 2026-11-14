@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>個人情報の取り扱いについて</title>
+  <link rel="stylesheet" href="style.css?v=20261115a">
+  <style>
+    .policy h1 { text-align: center; }
+    .policy h2 { margin: 28px 0 8px; font-size: 18px; color: var(--accent); }
+    .policy p, .policy li { font-size: 15px; }
+    .policy ul { margin: 0; padding-left: 1.4em; }
+    .policy li + li { margin-top: 4px; }
+    .policy dl { display: grid; grid-template-columns: 9em minmax(0, 1fr); margin: 0; border: 1px solid var(--border); border-bottom: none; }
+    .policy dt, .policy dd { margin: 0; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    .policy dt { background: var(--label-bg); font-size: 14px; }
+    .policy .unset { color: var(--error); font-weight: bold; }
+    .policy .setup-note { padding: 10px 14px; color: var(--error); background: var(--error-bg); border-radius: 6px; font-size: 14px; }
+    .policy .back { margin-top: 32px; text-align: center; }
+    .policy .updated { margin-top: 24px; text-align: right; color: var(--muted); font-size: 13px; }
+    @media (max-width: 640px) {
+      .policy dl { grid-template-columns: 1fr; }
+      .policy dt { border-bottom: none; padding-bottom: 2px; }
+      .policy dd { padding-top: 2px; }
+    }
+    @media print { .policy .back, .policy .setup-note { display: none !important; } }
+  </style>
+</head>
+<body>
+  <main class="sheet policy">
+    <h1>個人情報の取り扱いについて</h1>
+    <p>
+      ヒアリングシートにご入力いただいた個人情報を、次のとおり取り扱います。
+    </p>
+
+    <!-- 店舗情報が未設定のときだけ表示(管理者向け) -->
+    <p class="setup-note" id="setupNote" hidden>
+      管理者の方へ:config.js の PRIVACY に、事業者名・住所・代表者名・お問い合わせ先を設定してください。
+      赤字の項目が未設定です。
+    </p>
+
+    <h2>1. 事業者の情報</h2>
+    <dl>
+      <dt>事業者名</dt><dd id="pOperator"></dd>
+      <dt>所在地</dt><dd id="pAddress"></dd>
+      <dt>代表者</dt><dd id="pRepresentative"></dd>
+    </dl>
+
+    <h2>2. お預かりする情報</h2>
+    <ul>
+      <li>お名前、メールアドレス、電話番号</li>
+      <li>ヒアリングシートへのご回答(お使いの機種、ご希望、ご予算、ご契約の状況など)</li>
+      <li>添付していただいた写真(機種や請求書など)</li>
+    </ul>
+
+    <h2>3. 利用する目的</h2>
+    <ul>
+      <li>ご希望に合った商品・料金プランのご提案と、お見積りのため</li>
+      <li>ご提案やお手続きに関するご連絡のため</li>
+      <li>受付完了のお知らせをメールでお送りするため</li>
+      <li>お問い合わせへの対応のため</li>
+      <li>サービス改善のための統計(個人を特定できない形に集計したもの)を作るため</li>
+    </ul>
+    <p>上記の目的以外には利用しません。</p>
+
+    <h2>4. 第三者への提供</h2>
+    <p>
+      法令にもとづく場合を除き、ご本人の同意なく、個人情報を第三者に提供することはありません。
+    </p>
+
+    <h2>5. 利用している外部のサービス</h2>
+    <p>ヒアリングシートの運営に、次のサービスを利用しています。</p>
+    <ul>
+      <li>Google のサービス(スプレッドシート、ドライブ、Gmail):ご回答と写真の保存、メールの送信</li>
+      <li>GitHub Pages:このページの表示</li>
+      <li id="turnstileItem" hidden>Cloudflare Turnstile:機械による不正な送信を防ぐための確認</li>
+    </ul>
+
+    <h2>6. 保存する期間</h2>
+    <p>
+      ご回答と写真は、受信から<strong id="pRetention"></strong>を目安に削除します。
+      期間内でも、ご本人からお申し出があれば削除します。
+    </p>
+
+    <h2>7. 安全に管理するための取り組み</h2>
+    <ul>
+      <li>ご回答を見ることができる担当者を、必要な範囲に限っています。</li>
+      <li>保存先のアカウントは、第三者が利用できないように保護しています。</li>
+      <li>このページとの通信は、暗号化(https)されています。</li>
+    </ul>
+
+    <h2>8. 入力の途中でやめた場合の記録</h2>
+    <p>
+      ヒアリングシートの改善のため、入力を途中でやめた場合に
+      「どの画面でやめたか」「かかった時間」だけを記録します。
+      お名前やご回答の内容は記録せず、個人を特定することはできません。
+    </p>
+
+    <h2>9. 開示・訂正・削除のご請求と、お問い合わせ先</h2>
+    <p>
+      ご自身の情報の確認(開示)、訂正、削除、利用の停止をご希望の場合や、
+      個人情報の取り扱いに関するご質問・苦情は、次の窓口までご連絡ください。
+      ご本人であることを確認のうえ、すみやかに対応します。
+    </p>
+    <dl>
+      <dt>お問い合わせ先</dt><dd id="pContact"></dd>
+    </dl>
+
+    <h2>10. 内容の変更</h2>
+    <p>この内容は、必要に応じて変更することがあります。変更した場合は、このページでお知らせします。</p>
+
+    <p class="updated" id="pUpdated" hidden></p>
+
+    <p class="back"><a href="./" class="btn-secondary" style="display:inline-block;text-decoration:none">ヒアリングシートに戻る</a></p>
+  </main>
+
+  <script src="config.js?v=20261115a"></script>
+  <script>
+    (function () {
+      "use strict";
+      var config = window.HEARING_CONFIG || {};
+      var p = config.PRIVACY || {};
+      var missing = false;
+      function set(id, value) {
+        var node = document.getElementById(id);
+        if (value) {
+          node.textContent = value;
+        } else {
+          node.textContent = "(未設定)";
+          node.className = "unset";
+          missing = true;
+        }
+      }
+      set("pOperator", p.OPERATOR || config.SHOP_NAME);
+      set("pAddress", p.ADDRESS);
+      set("pRepresentative", p.REPRESENTATIVE);
+      set("pContact", p.CONTACT || (config.SHOP_TEL ? "電話:" + config.SHOP_TEL + (config.SHOP_HOURS ? "(" + config.SHOP_HOURS + ")" : "") : ""));
+
+      var months = Number(p.RETENTION_MONTHS) || 12;
+      document.getElementById("pRetention").textContent = months % 12 === 0 ? "約" + months / 12 + "年" : "約" + months + "か月";
+      document.getElementById("turnstileItem").hidden = !config.TURNSTILE_SITE_KEY;
+      if (p.UPDATED) {
+        document.getElementById("pUpdated").textContent = "最終更新日:" + p.UPDATED;
+        document.getElementById("pUpdated").hidden = false;
+      }
+      document.getElementById("setupNote").hidden = !missing;
+
+      // お店の色
+      var m = /^#?([0-9a-f]{6})$/i.exec(String(config.BRAND_COLOR || "").trim());
+      if (m) document.documentElement.style.setProperty("--accent", "#" + m[1]);
+    })();
+  </script>
+</body>
+</html>

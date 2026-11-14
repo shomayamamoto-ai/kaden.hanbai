@@ -34,6 +34,11 @@ var REPLY_TIME = "2営業日以内";
 // 「未対応」のまま、この時間がたったらお知らせする
 var REMIND_AFTER_HOURS = 24;
 
+// 回答を保存しておく期間(月)。この期間を過ぎた回答と写真は、毎朝自動で削除します。
+// 0 にすると、自動では削除しません。
+// ※ config.js の PRIVACY.RETENTION_MONTHS と同じにしてください
+var RETENTION_MONTHS = 12;
+
 // いたずら対策
 var MAX_PER_HOUR = 30; // 1時間に受け付ける回答の上限
 var MIN_FILL_SECONDS = 5; // これより早く送信されたものは機械による送信とみなす
@@ -762,6 +767,87 @@ function remindPending() {
 }
 
 // =====================================================
+// 古い回答の自動削除(毎朝6時ごろに自動で実行)
+// =====================================================
+// 保存期間を過ぎた回答の行・写真・見積もりシート・離脱ログを削除します。
+// 削除したときは、件数をメールでお知らせします。
+
+function purgeOld() {
+  if (!(RETENTION_MONTHS > 0)) return 0;
+  var limit = new Date();
+  limit.setMonth(limit.getMonth() - RETENTION_MONTHS);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var removed = 0;
+  var photos = 0;
+  var numbers = [];
+
+  FORM_SHEETS.forEach(function (name) {
+    var sheet = ss.getSheetByName(name);
+    if (!sheet || sheet.getLastRow() < 2) return;
+    var data = sheet.getDataRange().getValues();
+    var h = data[0].map(String);
+    var iDate = h.indexOf("受信日時"), iNo = h.indexOf("受付番号"), iPhoto = h.indexOf("写真");
+    if (iDate === -1) return;
+    // 行番号がずれないよう、下の行から順に消す
+    for (var r = data.length - 1; r >= 1; r--) {
+      var date = data[r][iDate];
+      if (!(date instanceof Date) || date.getTime() >= limit.getTime()) continue;
+      if (iPhoto !== -1) photos += trashPhotos_(String(data[r][iPhoto] || ""));
+      if (iNo !== -1 && data[r][iNo]) numbers.push(String(data[r][iNo]));
+      sheet.deleteRow(r + 1);
+      removed += 1;
+    }
+  });
+
+  // 削除した回答の「見積もりのたたき台」シートも消す
+  ss.getSheets().forEach(function (sheet) {
+    var name = sheet.getName();
+    if (name.indexOf("見積_") !== 0) return;
+    var no = name.slice(3).replace(/_\d+$/, "");
+    if (numbers.indexOf(no) !== -1) ss.deleteSheet(sheet);
+  });
+
+  // 離脱ログ(個人情報は入っていませんが、同じ期間で整理します)
+  var drop = ss.getSheetByName(DROPOFF_SHEET);
+  if (drop && drop.getLastRow() >= 2) {
+    var rows = drop.getDataRange().getValues();
+    for (var i = rows.length - 1; i >= 1; i--) {
+      if (rows[i][0] instanceof Date && rows[i][0].getTime() < limit.getTime()) drop.deleteRow(i + 1);
+    }
+  }
+
+  if (removed) {
+    MailApp.sendEmail({
+      to: notifyAddress_(),
+      subject: "【お知らせ】保存期間を過ぎたヒアリングシートを " + removed + " 件削除しました",
+      body:
+        "保存期間(" + RETENTION_MONTHS + "か月)を過ぎた回答を、自動で削除しました。\n\n" +
+        "・削除した回答:" + removed + " 件\n" +
+        "・削除した写真:" + photos + " 枚\n\n" +
+        "保存期間は、Apps Script の RETENTION_MONTHS で変更できます(0 にすると自動では削除しません)。\n" +
+        ss.getUrl(),
+    });
+  }
+  return removed;
+}
+
+// 「写真」の列に入っている Google ドライブのファイルを、ごみ箱に移す
+function trashPhotos_(cell) {
+  var count = 0;
+  cell.split("\n").forEach(function (url) {
+    var m = /[-\w]{25,}/.exec(url);
+    if (!m) return;
+    try {
+      DriveApp.getFileById(m[0]).setTrashed(true);
+      count += 1;
+    } catch (err) {
+      console.error("写真を削除できませんでした:", err);
+    }
+  });
+  return count;
+}
+
+// =====================================================
 // 集計(毎朝7時ごろに自動で更新。メニューからいつでも更新できます)
 // =====================================================
 
@@ -1035,10 +1121,11 @@ function remindPendingNow() {
 function setup() {
   // 自動実行の予約(重複しないよう、いったん消してから作り直す)
   ScriptApp.getProjectTriggers().forEach(function (t) {
-    if (["remindPending", "updateSummary"].indexOf(t.getHandlerFunction()) !== -1) ScriptApp.deleteTrigger(t);
+    if (["remindPending", "updateSummary", "purgeOld"].indexOf(t.getHandlerFunction()) !== -1) ScriptApp.deleteTrigger(t);
   });
   ScriptApp.newTrigger("remindPending").timeBased().everyDays(1).atHour(9).inTimezone("Asia/Tokyo").create();
   ScriptApp.newTrigger("updateSummary").timeBased().everyDays(1).atHour(7).inTimezone("Asia/Tokyo").create();
+  ScriptApp.newTrigger("purgeOld").timeBased().everyDays(1).atHour(6).inTimezone("Asia/Tokyo").create();
 
   // すでにある回答にも、プルダウンと色分けを付ける
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -1050,7 +1137,10 @@ function setup() {
   });
   ensurePriceSheet_([]);
   updateSummary();
-  alert_("初期設定が完了しました。毎朝、未対応のお知らせと集計の更新が自動で行われます。");
+  alert_(
+    "初期設定が完了しました。毎朝、未対応のお知らせと集計の更新が自動で行われます。" +
+      (RETENTION_MONTHS > 0 ? "\n受信から" + RETENTION_MONTHS + "か月を過ぎた回答と写真は、自動で削除されます。" : "")
+  );
 }
 
 /**

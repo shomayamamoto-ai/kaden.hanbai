@@ -181,7 +181,7 @@
       case "checkbox": {
         // 短い選択肢だけの項目は、横に並べて縦長にならないようにする
         const longest = Math.max(...field.options.map((o) => o.length));
-        const cls = "choices" + (longest <= 7 ? " grid-short" : longest <= 14 ? " grid-mid" : "");
+        const cls = "choices" + (longest <= 6 ? " grid-short" : longest <= 14 ? " grid-mid" : "");
         const wrap = el("div", { class: cls, role: field.type === "radio" ? "radiogroup" : "group" });
         field.options.forEach((opt) => {
           wrap.appendChild(
@@ -466,7 +466,9 @@
     step = next;
     els.errorSummary.hidden = true;
     refresh();
-    els.progress.scrollIntoView({ block: "start" });
+    // 新しいステップの先頭(進み具合のバーのすぐ下)が見える位置まで戻す
+    const top = els.body.getBoundingClientRect().top + window.scrollY - els.progress.offsetHeight - 8;
+    window.scrollTo({ top: Math.max(0, top) });
     const title = stepSections()[step] && stepSections()[step].querySelector(".section-title");
     if (title) {
       title.setAttribute("tabindex", "-1");

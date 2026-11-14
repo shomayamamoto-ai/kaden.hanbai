@@ -447,3 +447,13 @@ html.large-text .progress-sub { font-size: 14px; }
 
 /* ===== お店のロゴ ===== */
 .shop-logo { display: block; max-height: 56px; max-width: 60%; margin: 0 auto 8px; object-fit: contain; }
+
+/* 2行になる文は、1文字だけ次の行に落ちないよう、行の長さをそろえる */
+.choice > span,
+.q-table th > label,
+.q-table th > span:first-child,
+.sub-label,
+.description,
+.help-text { text-wrap: balance; }
+
+.agree a { color: var(--accent-dark); font-weight: bold; }
