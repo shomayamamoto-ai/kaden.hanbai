@@ -43,12 +43,19 @@ var PHOTO_FOLDER_NAME = "ヒアリングシート写真";
 
 // 対応状況のプルダウンの選択肢
 var STATUS_OPTIONS = ["未対応", "連絡済み", "提案済み", "成約", "失注", "対応不要"];
+
+// 担当者の名前(「担当者」の列でプルダウンから選べるようになります)
+// 例:var STAFF = ["山本", "佐藤", "鈴木"];  空のままなら、自由に入力できます。
+var STAFF = [];
 // ================
 
 var FORM_SHEETS = ["パソコン", "スマートフォン", "タブレット", "携帯料金見直し"];
 var ESTIMATE_SHEETS = ["パソコン", "スマートフォン", "タブレット"]; // 見積もりのたたき台を作れるシート
 var FORM_NAMES = { pc: "パソコン", phone: "スマートフォン", tablet: "タブレット", plan: "携帯料金見直し" };
-var FIXED_HEADERS = ["受信日時", "受付番号", "対応状況", "対応メモ", "提案のヒント", "写真", "回答の種類"];
+var FIXED_HEADERS = ["受信日時", "受付番号", "対応状況", "担当者", "対応日", "成約金額", "対応メモ", "提案のヒント", "写真", "回答の種類"];
+var DROPOFF_SHEET = "離脱ログ";
+var DROPOFF_HEADERS = ["日時", "シート", "回答の種類", "やめたステップ", "必須の回答数", "必須の総数", "経過秒"];
+var MAX_DROPOFF_PER_HOUR = 300;
 var STATUS_TTL = 21600; // 受付状況を覚えておく時間(秒)= 6時間
 
 // =====================================================
@@ -62,6 +69,9 @@ function doPost(e) {
   } catch (err) {
     return json_({ ok: false, error: "invalid" });
   }
+  // 途中でやめた方の記録(どのステップでやめたかだけ。回答や個人情報は含まない)
+  if (data && data.event === "dropoff") return logDropoff_(data);
+
   if (!data || !/^(PC|SP|TB|MP)-\d{6}-\d{4}$/.test(String(data.receiptNo || ""))) {
     return json_({ ok: false, error: "invalid" });
   }
@@ -108,6 +118,40 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function logDropoff_(data) {
+  var cache = CacheService.getScriptCache();
+  var key = "drop_" + Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyyMMddHH");
+  var count = Number(cache.get(key) || 0);
+  if (count >= MAX_DROPOFF_PER_HOUR || !FORM_NAMES[data.formType]) return json_({ ok: false });
+  cache.put(key, String(count + 1), 3700);
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(DROPOFF_SHEET);
+    if (!sheet) {
+      sheet = ss.insertSheet(DROPOFF_SHEET);
+      sheet.appendRow(DROPOFF_HEADERS);
+      sheet.getRange(1, 1, 1, DROPOFF_HEADERS.length).setFontWeight("bold").setBackground("#ebeff0");
+      sheet.setFrozenRows(1);
+    }
+    var num = function (v) { return Math.max(0, Math.min(99999, Math.round(Number(v) || 0))); };
+    sheet.appendRow([
+      new Date(),
+      FORM_NAMES[data.formType],
+      data.mode === "simple" ? "かんたん版" : "しっかり版",
+      safe_(String(data.step || "").slice(0, 50)),
+      num(data.answered),
+      num(data.total),
+      num(data.elapsedSec),
+    ]);
+  } finally {
+    lock.releaseLock();
+  }
+  return json_({ ok: true });
 }
 
 // 受付状況の問い合わせ(フォームが「届いたかどうか」を確認するために使う)
@@ -292,6 +336,31 @@ function applyStatusDropdown_(sheet, fromRow, toRow) {
   if (col < 1 || toRow < fromRow) return;
   var rule = SpreadsheetApp.newDataValidation().requireValueInList(STATUS_OPTIONS, true).setAllowInvalid(true).build();
   sheet.getRange(fromRow, col, toRow - fromRow + 1, 1).setDataValidation(rule);
+
+  // 担当者も、名前を登録してあればプルダウンで選べるようにする
+  var staffCol = headerIndex_(sheet, "担当者") + 1;
+  if (staffCol >= 1 && STAFF.length) {
+    var staffRule = SpreadsheetApp.newDataValidation().requireValueInList(STAFF, true).setAllowInvalid(true).build();
+    sheet.getRange(fromRow, staffCol, toRow - fromRow + 1, 1).setDataValidation(staffRule);
+  }
+}
+
+// 「対応状況」を「未対応」以外に変えたら、「対応日」に今日の日付を自動で入れる
+function onEdit(e) {
+  try {
+    if (!e || !e.range) return;
+    var range = e.range;
+    var sheet = range.getSheet();
+    if (FORM_SHEETS.indexOf(sheet.getName()) === -1 || range.getRow() < 2) return;
+    if (range.getColumn() !== headerIndex_(sheet, "対応状況") + 1) return;
+    var dateCol = headerIndex_(sheet, "対応日") + 1;
+    if (dateCol < 1) return;
+    var value = String(range.getValue());
+    var cell = sheet.getRange(range.getRow(), dateCol);
+    if (value && value !== "未対応" && !cell.getValue()) cell.setValue(new Date());
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 // 「未対応」は赤、「成約」は緑で色分けする
@@ -742,7 +811,39 @@ function updateSummary() {
     rows.push(["回答数", total, ""]);
     rows.push(["成約数", won, ""]);
     rows.push(["成約率(成約 ÷ 結果が出た件数)", closed ? Math.round((won / closed) * 1000) / 10 + "%" : "-", "結果が出た件数:" + closed]);
+
+    // 売上(「成約金額」の列に金額を入れると集計されます)
+    var iAmt = h.indexOf("成約金額");
+    var amounts = iAmt === -1 ? [] : body.map(function (r) { return Number(String(r[iAmt]).replace(/[^\d.]/g, "")) || 0; }).filter(function (v) { return v > 0; });
+    var sales = amounts.reduce(function (x, y) { return x + y; }, 0);
+    rows.push(["成約金額の合計", sales, amounts.length ? "金額の入力あり:" + amounts.length + "件" : "「成約金額」の列に入力すると集計されます"]);
+    rows.push(["成約1件あたりの平均", amounts.length ? Math.round(sales / amounts.length) : "-", ""]);
+
+    // 連絡までにかかった日数(受信日時 → 対応日)
+    var iDate = h.indexOf("受信日時"), iDone = h.indexOf("対応日");
+    var days = iDone === -1 ? [] : body.filter(function (r) { return r[iDone] instanceof Date && r[iDate] instanceof Date; })
+      .map(function (r) { return (r[iDone].getTime() - r[iDate].getTime()) / 86400000; });
+    rows.push(["対応までの平均日数", days.length ? Math.round((days.reduce(function (x, y) { return x + y; }, 0) / days.length) * 10) / 10 + "日" : "-", ""]);
     rows.push(["", "", ""]);
+
+    // 担当者ごとの件数と成約数
+    var iStaff = h.indexOf("担当者");
+    if (iStaff !== -1) {
+      var staff = {};
+      body.forEach(function (r) {
+        var name = String(r[iStaff] || "").trim();
+        if (!name) return;
+        staff[name] = staff[name] || { n: 0, won: 0 };
+        staff[name].n += 1;
+        if (String(r[iSt]) === "成約") staff[name].won += 1;
+      });
+      var names = Object.keys(staff);
+      if (names.length) {
+        rows.push(["【担当者】", "件数", "成約数"]);
+        names.forEach(function (name) { rows.push(["  " + safe_(name), staff[name].n, staff[name].won]); });
+        rows.push(["", "", ""]);
+      }
+    }
 
     SUMMARY_ITEMS.forEach(function (label) {
       var i = h.indexOf(label);
@@ -763,6 +864,28 @@ function updateSummary() {
       rows.push(["", "", ""]);
     });
   });
+
+  // 途中でやめた方(離脱ログ)
+  var drop = ss.getSheetByName(DROPOFF_SHEET);
+  if (drop && drop.getLastRow() >= 2) {
+    var dd = drop.getDataRange().getValues().slice(1);
+    titleRows.push(rows.length + 1);
+    rows.push(["■ 途中でやめた方(入力を始めたが、送信しなかった方)", "", ""]);
+    FORM_SHEETS.forEach(function (name) {
+      var list = dd.filter(function (r) { return String(r[1]) === name; });
+      if (!list.length) return;
+      var sheet = ss.getSheetByName(name);
+      var sent = sheet ? Math.max(sheet.getLastRow() - 1, 0) : 0;
+      rows.push(["【" + name + "】", "件数", "割合"]);
+      rows.push(["  送信まで完了した割合(目安)", sent + " / " + (sent + list.length), Math.round((sent / (sent + list.length)) * 1000) / 10 + "%"]);
+      var by = {};
+      list.forEach(function (r) { by[String(r[3])] = (by[String(r[3])] || 0) + 1; });
+      Object.keys(by).sort(function (x, y) { return by[y] - by[x]; }).forEach(function (k) {
+        rows.push(["  やめたステップ:" + k, by[k], Math.round((by[k] / list.length) * 1000) / 10 + "%"]);
+      });
+      rows.push(["", "", ""]);
+    });
+  }
 
   if (rows.length === 2) rows.push(["まだ回答がありません", "", ""]);
   out.getRange(1, 1, rows.length, 3).setValues(rows);

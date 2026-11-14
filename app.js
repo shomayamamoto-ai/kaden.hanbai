@@ -37,6 +37,12 @@
     printBtn: $("printBtn"),
     againBtn: $("againBtn"),
     leadIntro: $("leadIntro"),
+    shopLogo: $("shopLogo"),
+    progressSub: $("progressSub"),
+    agreeBox: $("agreeBox"),
+    prevBtn: $("prevBtn"),
+    nextBtn: $("nextBtn"),
+    confirmBtn: $("confirmBtn"),
     flowProposal: $("flowProposal"),
     flowProposalText: $("flowProposalText"),
     upsell: $("upsell"),
@@ -53,6 +59,8 @@
   let lastAnswers = null;
   let returnScrollY = 0;
   let photos = []; // { dataUrl }
+  let step = 0; // 表示中のステップ(1画面に1セクションずつ表示する)
+  let dropoffSent = false;
   let receiptNo = null; // 確認画面に進むたびに発行。再送信のときは同じ番号を使う
   let startedAt = Date.now();
   let dirty = false; // 何か入力されたか(閉じるときの確認に使う)
@@ -173,7 +181,7 @@
       case "checkbox": {
         // 短い選択肢だけの項目は、横に並べて縦長にならないようにする
         const longest = Math.max(...field.options.map((o) => o.length));
-        const cls = "choices" + (longest <= 8 ? " grid-short" : longest <= 14 ? " grid-mid" : "");
+        const cls = "choices" + (longest <= 7 ? " grid-short" : longest <= 14 ? " grid-mid" : "");
         const wrap = el("div", { class: cls, role: field.type === "radio" ? "radiogroup" : "group" });
         field.options.forEach((opt) => {
           wrap.appendChild(
@@ -322,7 +330,9 @@
     els.tabs.forEach((b) => b.setAttribute("aria-selected", String(b.dataset.form === def.key)));
 
     photos = [];
+    step = 0;
     renderForm(def);
+    setupInputHelpers();
     els.agree.checked = false;
     clearErrors();
     refresh();
@@ -415,17 +425,71 @@
       const box = els.form.querySelector(`input[name="${tr.dataset.parent}"][value="${CSS.escape(tr.dataset.option)}"]`);
       tr.hidden = Boolean(parentRow && parentRow.hidden) || !(box && box.checked);
     });
-    // 見出しの番号は、表示中のセクションだけで振り直す
+    // 質問が1つも表示されないセクションは飛ばし、見出しの番号を振り直す
     let n = 0;
     els.body.querySelectorAll(".section").forEach((sec) => {
       const shown = Array.from(sec.querySelectorAll("tr[data-field]")).some((tr) => !tr.hidden);
-      sec.hidden = !shown;
+      sec.dataset.shown = shown ? "1" : "";
       if (shown) {
         n += 1;
         const h2 = sec.querySelector(".section-title");
         h2.firstChild.textContent = `${n}. ` + h2.firstChild.textContent.replace(/^\d+\. /, "");
       }
     });
+    // 1画面には、今のステップのセクションだけを表示する
+    const steps = stepSections();
+    step = Math.max(0, Math.min(step, steps.length - 1));
+    els.body.querySelectorAll(".section").forEach((sec) => (sec.hidden = sec !== steps[step]));
+    const last = step === steps.length - 1;
+    els.prevBtn.hidden = step === 0;
+    els.nextBtn.hidden = last;
+    els.confirmBtn.hidden = !last;
+    els.agreeBox.hidden = !last;
+  }
+
+  // =====================================================
+  // ステップ(1画面に1セクション)
+  // =====================================================
+
+  function stepSections() {
+    return Array.from(els.body.querySelectorAll(".section")).filter((sec) => sec.dataset.shown);
+  }
+
+  function fieldsInStep(index) {
+    const sec = stepSections()[index];
+    if (!sec) return [];
+    const ids = Array.from(sec.querySelectorAll("tr[data-field]")).filter((tr) => !tr.hidden).map((tr) => tr.dataset.field);
+    return allFields().filter((f) => ids.includes(f.id));
+  }
+
+  function goStep(next) {
+    step = next;
+    els.errorSummary.hidden = true;
+    refresh();
+    els.progress.scrollIntoView({ block: "start" });
+    const title = stepSections()[step] && stepSections()[step].querySelector(".section-title");
+    if (title) {
+      title.setAttribute("tabindex", "-1");
+      title.focus({ preventScroll: true });
+    }
+  }
+
+  // 「次へ進む」:今のステップの必須項目をチェックしてから進む
+  function nextStep() {
+    const answers = collect();
+    const errors = [];
+    fieldsInStep(step).forEach((field) => {
+      const msg = checkField(field, answers);
+      setFieldError(field.id, msg);
+      if (msg) errors.push(field.id);
+    });
+    if (errors.length) {
+      els.errorSummary.textContent = `未入力または誤りのある項目が${errors.length}件あります。赤い欄をご確認ください。`;
+      els.errorSummary.hidden = false;
+      els.form.querySelector(`tr[data-field="${errors[0]}"]`).scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    goStep(step + 1);
   }
 
   // =====================================================
@@ -487,8 +551,18 @@
     if (messages.length) {
       els.errorSummary.textContent = messages.join(" ");
       els.errorSummary.hidden = false;
-      const first = errors.length ? els.form.querySelector(`tr[data-field="${errors[0]}"]`) : els.agree;
-      first.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (errors.length) {
+        // エラーのある最初のステップに戻る
+        const row = els.form.querySelector(`tr[data-field="${errors[0]}"]`);
+        const at = stepSections().indexOf(row.closest(".section"));
+        if (at !== -1 && at !== step) {
+          step = at;
+          updateVisibility();
+        }
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else {
+        els.agree.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
       return false;
     }
     return true;
@@ -505,6 +579,117 @@
   }
 
   // =====================================================
+  // 入力の手助け(全角 → 半角、メールアドレスの打ち間違い)
+  // =====================================================
+
+  // よくある打ち間違い → 正しいドメイン
+  const DOMAIN_TYPOS = {
+    "gmial.com": "gmail.com", "gamil.com": "gmail.com", "gmai.com": "gmail.com", "gmail.co": "gmail.com",
+    "gmail.con": "gmail.com", "gmail.cm": "gmail.com", "gmali.com": "gmail.com", "gmail.co.jp": "gmail.com",
+    "gmail.ne.jp": "gmail.com", "gnail.com": "gmail.com", "g-mail.com": "gmail.com",
+    "yahoo.co.jo": "yahoo.co.jp", "yaho.co.jp": "yahoo.co.jp", "yahooo.co.jp": "yahoo.co.jp", "yahoo.ne.jp": "yahoo.co.jp",
+    "yahoo.co.pj": "yahoo.co.jp", "yhoo.co.jp": "yahoo.co.jp",
+    "icloud.co": "icloud.com", "icloud.con": "icloud.com", "icoud.com": "icloud.com", "iclould.com": "icloud.com",
+    "docomo.ne.jo": "docomo.ne.jp", "docomo.co.jp": "docomo.ne.jp", "docmo.ne.jp": "docomo.ne.jp",
+    "ezweb.ne.jo": "ezweb.ne.jp", "ezweb.co.jp": "ezweb.ne.jp", "au.co.jp": "au.com",
+    "softbank.ne.jo": "softbank.ne.jp", "softbank.co.jp": "softbank.ne.jp", "i.softbank.ne.jp": "i.softbank.jp",
+    "hotmial.com": "hotmail.com", "hotmai.com": "hotmail.com", "hotmail.con": "hotmail.com",
+    "outlok.com": "outlook.com", "outlook.con": "outlook.com", "outlook.co.jp": "outlook.jp",
+  };
+
+  // 全角の英数字・記号を半角に直す(メールアドレス・電話番号用)
+  function toHalfWidth(text) {
+    return text
+      .replace(/[\uFF01-\uFF5E]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)) // 全角の英数字・記号
+      .replace(/[\u30FC\u2015\u2010\u2212]/g, "-") // 長音・ダッシュ・マイナス
+      .replace(/\u3000/g, " "); // 全角スペース
+  }
+
+  function setupInputHelpers() {
+    ["email", "tel"].forEach((id) => {
+      const input = els.form.elements["f_" + id];
+      if (!input) return;
+      input.addEventListener("blur", () => {
+        const fixed = toHalfWidth(input.value).trim().replace(id === "email" ? /\s+/g : /$^/, "");
+        if (fixed !== input.value) {
+          input.value = fixed;
+          onEdit();
+        }
+        if (id === "email") suggestEmail(input);
+      });
+    });
+  }
+
+  // 「もしかして ○○@gmail.com ですか?」と候補を出す
+  function suggestEmail(input) {
+    const td = input.closest("td");
+    const old = td.querySelector(".suggest");
+    if (old) old.remove();
+    const m = /^([^\s@]+)@([^\s@]+)$/.exec(input.value);
+    const fixedDomain = m && DOMAIN_TYPOS[m[2].toLowerCase()];
+    if (!fixedDomain) return;
+    const fixed = `${m[1]}@${fixedDomain}`;
+    const btn = el("button", { type: "button", class: "suggest-btn", text: "このアドレスに直す" });
+    btn.addEventListener("click", () => {
+      input.value = fixed;
+      td.querySelector(".suggest").remove();
+      onEdit();
+    });
+    td.appendChild(el("p", { class: "suggest" }, ["もしかして ", el("strong", { text: fixed }), " ですか? ", btn]));
+  }
+
+  // =====================================================
+  // お店の色・ロゴ
+  // =====================================================
+
+  function applyBrand() {
+    if (config.LOGO_URL) {
+      els.shopLogo.src = config.LOGO_URL;
+      els.shopLogo.alt = config.SHOP_NAME || "";
+      els.shopLogo.hidden = false;
+      els.shopLogo.addEventListener("error", () => (els.shopLogo.hidden = true));
+    }
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(config.BRAND_COLOR || "").trim());
+    if (!m) return;
+    let rgb = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
+    // 白い文字が読めるコントラスト(4.5以上)になるまで、少しずつ濃くする
+    const lum = (c) => {
+      const f = c.map((v) => ((v /= 255) <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)));
+      return 0.2126 * f[0] + 0.7152 * f[1] + 0.0722 * f[2];
+    };
+    for (let i = 0; i < 40 && 1.05 / (lum(rgb) + 0.05) < 4.5; i++) rgb = rgb.map((v) => Math.round(v * 0.94));
+    const hex = (c) => "#" + c.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("");
+    const root = document.documentElement.style;
+    root.setProperty("--accent", hex(rgb));
+    root.setProperty("--accent-dark", hex(rgb.map((v) => v * 0.8)));
+    root.setProperty("--selected-bg", hex(rgb.map((v) => v + (255 - v) * 0.9)));
+  }
+
+  // =====================================================
+  // 途中でやめた方の記録(どのステップでやめたかだけを送る。回答や個人情報は送らない)
+  // =====================================================
+
+  function sendDropoff() {
+    const view = document.body.dataset.view;
+    if (dropoffSent || !dirty || view === "done" || !config.GAS_URL || !navigator.sendBeacon) return;
+    dropoffSent = true;
+    const answers = collect();
+    const required = visibleFields().filter((f) => isRequiredNow(f, answers));
+    const steps = stepSections();
+    const title = steps[step] ? steps[step].querySelector(".section-title").firstChild.textContent : "";
+    const data = {
+      event: "dropoff",
+      formType: current.key,
+      mode,
+      step: view === "confirm" ? "確認画面" : title,
+      answered: required.filter((f) => !checkField(f, answers)).length,
+      total: required.length,
+      elapsedSec: Math.round((Date.now() - startedAt) / 1000),
+    };
+    navigator.sendBeacon(config.GAS_URL, new Blob([JSON.stringify(data)], { type: "text/plain;charset=utf-8" }));
+  }
+
+  // =====================================================
   // 進み具合のバー
   // =====================================================
 
@@ -514,8 +699,15 @@
     const total = required.length;
     const complete = done === total;
 
-    els.progressCount.textContent = `${done} / ${total}`;
-    els.progressLabel.textContent = complete ? "必須項目はすべて回答済みです 🎉" : "必須項目の回答状況";
+    const steps = stepSections();
+    const title = steps[step] ? steps[step].querySelector(".section-title").firstChild.textContent.replace(/^\d+\. /, "") : "";
+    els.progressCount.textContent = `ステップ ${step + 1} / ${steps.length}`;
+    els.progressLabel.textContent = title;
+    // 残りの目安:必須の質問1つにつき約10秒で計算
+    const minutes = Math.max(1, Math.ceil(((total - done) * 10) / 60));
+    els.progressSub.textContent = complete
+      ? "必須項目はすべて回答済みです 🎉"
+      : `必須項目 ${done} / ${total} ・ あと約${minutes}分`;
     els.progressBar.style.width = total ? `${Math.round((done / total) * 100)}%` : "0%";
     els.progress.classList.toggle("complete", complete);
   }
@@ -561,6 +753,12 @@
 
   function goConfirm(e) {
     e.preventDefault();
+
+    // 最後のステップ以外で Enter キーが押されたときは、「次へ進む」と同じ動きにする
+    if (step < stepSections().length - 1) {
+      nextStep();
+      return;
+    }
 
     // スパム対策:隠し欄に入力があれば、送信したふりをして終了
     if (els.form.elements._hp.value) {
@@ -819,6 +1017,7 @@
     lastAnswers = null;
     receiptNo = null;
     dirty = false;
+    dropoffSent = false;
     startedAt = Date.now();
     selectForm(key);
     showView("input");
@@ -839,6 +1038,7 @@
   // 初期化
   // =====================================================
 
+  applyBrand();
   if (config.SHOP_NAME) {
     els.shopName.textContent = config.SHOP_NAME;
     els.shopName.hidden = false;
@@ -853,6 +1053,9 @@
     })
   );
   els.modeBtns.forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+  els.nextBtn.addEventListener("click", nextStep);
+  els.prevBtn.addEventListener("click", () => goStep(step - 1));
+  window.addEventListener("pagehide", sendDropoff);
   els.fontBtn.addEventListener("click", toggleFont);
   els.submitBtn.addEventListener("click", submit);
   els.backBtn.addEventListener("click", backToInput);

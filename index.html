@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <title>買い替えヒアリングシート</title>
-  <link rel="stylesheet" href="style.css?v=20261111b">
+  <link rel="stylesheet" href="style.css?v=20261114a">
 </head>
 <body>
   <main class="sheet">
@@ -13,6 +13,7 @@
       <div class="tools">
         <button type="button" class="tool-btn" id="fontBtn" aria-pressed="false">文字を大きくする</button>
       </div>
+      <img class="shop-logo" id="shopLogo" alt="" hidden>
       <p class="shop-name" id="shopName" hidden></p>
       <h1 id="formTitle">買い替えヒアリングシート</h1>
       <p class="lead">
@@ -64,6 +65,7 @@
           <span id="progressLabel">必須項目</span>
           <strong id="progressCount">0 / 0</strong>
         </div>
+        <p class="progress-sub" id="progressSub"></p>
         <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
       </div>
 
@@ -75,16 +77,19 @@
           <label>この欄は空のままにしてください<input type="text" name="_hp" tabindex="-1" autocomplete="off"></label>
         </div>
 
-        <div class="agree">
+        <!-- 最後のステップだけに表示 -->
+        <div class="agree" id="agreeBox">
           <label>
             <input type="checkbox" id="agree" required>
-            入力内容を、<wbr>機種のご提案・ご連絡の目的で<wbr>利用することに同意します。
+            入力内容を、<wbr>ご提案・ご連絡の目的で<wbr>利用することに同意します。
           </label>
         </div>
 
         <p class="error-summary" id="errorSummary" role="alert" hidden></p>
 
-        <div class="actions">
+        <div class="actions step-nav">
+          <button type="button" class="btn-secondary" id="prevBtn">← 戻る</button>
+          <button type="button" class="btn-primary" id="nextBtn">次へ進む →</button>
           <button type="submit" class="btn-primary" id="confirmBtn">入力内容を確認する</button>
         </div>
       </form>
@@ -152,7 +157,7 @@
           <li>ご家族の分や、<wbr>ご自宅のネットもまとめて相談OK</li>
         </ul>
         <button type="button" class="btn-primary" id="upsellBtn">料金見直しのヒアリングに進む(約3分)</button>
-        <p class="muted">お名前とメールアドレスは、<wbr>入力済みの状態で始まります。</p>
+        <p class="muted">お名前とメールアドレスは、<wbr>入力済みになっています。</p>
       </div>
 
       <details class="summary">
@@ -167,10 +172,10 @@
     </section>
   </main>
 
-  <script src="config.js?v=20261111b"></script>
-  <script src="models.js?v=20261111b"></script>
-  <script src="accessories.js?v=20261111b"></script>
-  <script src="questions.js?v=20261111b"></script>
-  <script src="app.js?v=20261111b"></script>
+  <script src="config.js?v=20261114a"></script>
+  <script src="models.js?v=20261114a"></script>
+  <script src="accessories.js?v=20261114a"></script>
+  <script src="questions.js?v=20261114a"></script>
+  <script src="app.js?v=20261114a"></script>
 </body>
 </html>
