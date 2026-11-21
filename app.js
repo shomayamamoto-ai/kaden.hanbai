@@ -47,6 +47,7 @@
     flowProposalText: $("flowProposalText"),
     upsell: $("upsell"),
     upsellBtn: $("upsellBtn"),
+    nextConsult: $("nextConsult"),
   };
 
   // 入力できる文字数の上限(いたずらで大量の文字を送られないようにする)
@@ -58,6 +59,9 @@
   let mode = "full"; // "full" = しっかり版、"simple" = かんたん版
   let lastAnswers = null;
   let lastChecks = [];
+  // 「ほかにも相談したいこと」でチェックされ、まだヒアリングに進んでいない相談(送信後の画面に出す)
+  let pendingConsults = [];
+  const answeredForms = new Set(); // この画面で送信が終わったシート
   let returnScrollY = 0;
   let photos = []; // { dataUrl }
   let step = 0; // 表示中のステップ(1画面に1セクションずつ表示する)
@@ -390,9 +394,10 @@
 
   // 画面に表示するかどうか(かんたん版・答えによる出し分け)
   function isVisible(field, raw) {
-    if (mode === "simple" && !(field.required || field.requiredWhen || field.id === "notes")) return false;
-    const cond = field.showIf;
-    if (cond) {
+    // かんたん版でも「ほかにも相談したいこと」は出す(ほかの相談をまとめて受けるため)
+    if (mode === "simple" && !(field.required || field.requiredWhen || field.id === "notes" || field.id === "other_consult")) return false;
+    // 出し分けの条件は1つ、または複数(すべてに当てはまるときだけ表示)
+    for (const cond of [].concat(field.showIf || [])) {
       const v = raw[cond.field] || "";
       if (cond.notIn && cond.notIn.includes(v)) return false;
       if (cond.in && !cond.in.includes(v)) return false;
@@ -1102,8 +1107,12 @@
         ? "今の料金と使い方を比べて、無理のない見直し方法をご紹介します。"
         : "ご予算・用途に合わせて、おすすめの機種をいくつかご紹介します。";
 
-    // 機種のヒアリングを送った方には、携帯料金・Wi-Fiの見直しもおすすめする
-    els.upsell.hidden = current.key === "plan" || !forms.plan;
+    // ほかの相談: チェックした相談のヒアリングに、続けて進めるようにする
+    answeredForms.add(current.key);
+    addPendingConsults(pick(answers, "other_consult"));
+    renderNextConsult(pick(answers, "other_consult"));
+    // チェックがなく、まだ料金見直しを送っていない方には、携帯・Wi-Fiの見直しをおすすめする
+    els.upsell.hidden = !els.nextConsult.hidden || current.key === "plan" || answeredForms.has("plan") || !forms.plan;
 
     els.doneSummary.innerHTML = "";
     els.doneSummary.appendChild(el("p", { class: "muted", text: `受付番号:${no}` }));
@@ -1112,6 +1121,102 @@
     showView("done");
     window.scrollTo({ top: 0 });
     els.doneView.focus();
+  }
+
+  // =====================================================
+  // ほかの相談(ほかの端末の買い替え・携帯やWi-Fiの料金の見直し)へ、続けて進む
+  // =====================================================
+
+  const CONSULT_TARGETS = {
+    "パソコンの買い替え": { key: "pc", icon: "💻" },
+    "スマートフォンの買い替え": { key: "phone", icon: "📱" },
+    "タブレットの買い替え": { key: "tablet", icon: "📲" },
+    "携帯料金の見直し": { key: "plan", icon: "📶", topic: "mobile" },
+    "自宅のWi-Fi・インターネット料金の見直し": { key: "plan", icon: "📶", topic: "wifi" },
+  };
+  const TOPIC_VALUES = { mobile: "携帯料金の見直し", wifi: "自宅のWi-Fi・インターネット料金の見直し", both: "両方まとめて見直したい" };
+
+  function addPendingConsults(value) {
+    String(value || "").split("、").forEach((opt) => {
+      const t = CONSULT_TARGETS[opt.trim()];
+      if (!t || !forms[t.key]) return;
+      const same = pendingConsults.find((x) => x.key === t.key);
+      // 携帯とWi-Fiの両方にチェックがあれば、料金見直しは「両方まとめて」で1つにする
+      if (same) { if (t.topic && same.topic && same.topic !== t.topic) same.topic = "both"; return; }
+      pendingConsults.push(Object.assign({}, t));
+    });
+    pendingConsults = pendingConsults.filter((x) => !answeredForms.has(x.key));
+  }
+
+  // 「|」の位置でだけ改行する(変な位置で文字が切れないように)
+  function wrapText(tag, attrs, text) {
+    const node = el(tag, attrs);
+    text.split("|").forEach((part, i) => {
+      if (i) node.appendChild(document.createElement("wbr"));
+      node.appendChild(document.createTextNode(part));
+    });
+    return node;
+  }
+
+  function consultTitle(x) {
+    if (x.key !== "plan") return `${forms[x.key].name === "スマートフォン" ? "スマート|フォン" : forms[x.key].name}の|買い替え`;
+    return { mobile: "携帯料金の|見直し", wifi: "自宅のWi-Fi・|インターネット料金の|見直し", both: "携帯・Wi-Fi料金の|見直し" }[x.topic || "both"];
+  }
+
+  function renderNextConsult(selected) {
+    els.nextConsult.innerHTML = "";
+    let list = pendingConsults;
+    let title = "続けて、|ご相談の内容を|教えてください";
+    let lead = "「ほかにも相談したいこと」で|チェックしていただいた|内容について、|詳しいヒアリングに|進めます。|進まなくても、|担当者から|まとめてご連絡します。";
+    // 料金見直しを送った方で、ほかの相談のチェックがないときは、端末の買い替えもご案内する
+    if (!list.length && current.key === "plan") {
+      list = ["pc", "phone", "tablet"].filter((k) => forms[k] && !answeredForms.has(k)).map((k) => ({ key: k, icon: CONSULT_TARGETS[`${forms[k].name}の買い替え`].icon }));
+      title = "スマホ・パソコン・|タブレットの買い替えも、|ご相談いただけます";
+      lead = "料金の見直しとあわせて、|端末の買い替えも|まとめてご提案できます。";
+    }
+    const family = has(selected, "ご家族の端末の買い替え");
+    if (!list.length && !family) { els.nextConsult.hidden = true; return; }
+    els.nextConsult.appendChild(el("p", { class: "upsell-eyebrow", text: "ほかのご相談" }));
+    els.nextConsult.appendChild(wrapText("h3", { class: "upsell-title" }, title));
+    if (list.length) {
+      els.nextConsult.appendChild(wrapText("p", { class: "upsell-text" }, lead));
+      const box = el("div", { class: "next-consult-buttons" });
+      list.forEach((x) => {
+        const btn = el("button", { type: "button", class: "btn-primary next-consult-btn" }, [
+          el("span", { class: "icon", "aria-hidden": "true", text: x.icon }),
+          wrapText("span", {}, `${consultTitle(x)}の|ヒアリングに進む|(約3分)`),
+        ]);
+        btn.addEventListener("click", () => goToForm(x));
+        box.appendChild(btn);
+      });
+      els.nextConsult.appendChild(box);
+      els.nextConsult.appendChild(wrapText("p", { class: "muted" }, "お名前とメールアドレスは、|入力済みになっています。"));
+    }
+    if (family) els.nextConsult.appendChild(wrapText("p", { class: "next-consult-family" }, "ご家族の端末の買い替えについては、|担当者から|詳しくお伺いします。"));
+    els.nextConsult.hidden = false;
+  }
+
+  function has(v, word) {
+    return String(v || "").indexOf(word) !== -1;
+  }
+
+  // ほかのシートへ進む: お名前とメールアドレスだけ引き継ぐ(ほかの回答は引き継がない)。
+  // 料金見直しは「見直したいもの」も選んだ状態で始める
+  function goToForm(target) {
+    const carry = { name: pick(lastAnswers || [], "name"), email: pick(lastAnswers || [], "email") };
+    pendingConsults = pendingConsults.filter((x) => x.key !== target.key);
+    // 詳しく聞くほど提案の精度が上がるため、「しっかり版」で開く
+    setMode("full");
+    resetForm(target.key);
+    Object.entries(carry).forEach(([id, value]) => {
+      const input = els.form.elements["f_" + id];
+      if (input && value) input.value = value;
+    });
+    if (target.key === "plan") {
+      const box = els.form.querySelector(`input[name="f_topic"][value="${CSS.escape(TOPIC_VALUES[target.topic || "both"])}"]`);
+      if (box) box.checked = true;
+    }
+    refresh();
   }
 
   // 続けて別の内容を送る:入力内容はすべて消して、まっさらな状態から始める
@@ -1166,19 +1271,13 @@
     els.doneSummary.parentElement.open = true;
     window.print();
   });
-  els.againBtn.addEventListener("click", () => resetForm(current.key));
-  // 料金見直しは詳しく聞くほど提案の精度が上がるため、「しっかり版」で開く
-  // お名前とメールアドレスだけは引き継ぐ(入力の手間を減らすため。ほかの回答は引き継がない)
-  els.upsellBtn.addEventListener("click", () => {
-    const carry = { name: pick(lastAnswers || [], "name"), email: pick(lastAnswers || [], "email") };
-    setMode("full");
-    resetForm("plan");
-    Object.entries(carry).forEach(([id, value]) => {
-      const input = els.form.elements["f_" + id];
-      if (input && value) input.value = value;
-    });
-    refresh();
+  // 別のお客様が続けて使うこともあるため、ほかの相談の予定も消す
+  els.againBtn.addEventListener("click", () => {
+    pendingConsults = [];
+    answeredForms.clear();
+    resetForm(current.key);
   });
+  els.upsellBtn.addEventListener("click", () => goToForm({ key: "plan", topic: "both" }));
 
   // 入力の途中でページを閉じようとしたら、確認を出す
   window.addEventListener("beforeunload", (e) => {

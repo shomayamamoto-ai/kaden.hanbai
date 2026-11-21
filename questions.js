@@ -1093,6 +1093,96 @@
     });
   });
 
+  // =====================================================
+  // 携帯・Wi-Fi料金見直し: Wi-Fi(自宅のインターネット)だけの相談にも対応する
+  // =====================================================
+  // 最初に「何を見直したいか」を聞き、関係のない質問は出さない
+  plan.name = "携帯・Wi-Fi料金見直し";
+  plan.title = "携帯・Wi-Fi料金見直しヒアリングシート";
+  plan.leadIntro = "携帯料金や、ご自宅のWi-Fi・インターネットの料金を見直すため、";
+  const TOPIC_MOBILE = "携帯料金の見直し";
+  const TOPIC_WIFI = "自宅のWi-Fi・インターネット料金の見直し";
+  const TOPIC_BOTH = "両方まとめて見直したい";
+  plan.sections.unshift({
+    title: "ご相談の内容",
+    fields: [{
+      id: "topic",
+      label: "見直したいもの",
+      type: "radio",
+      required: true,
+      options: [TOPIC_MOBILE, TOPIC_WIFI, TOPIC_BOTH],
+      help: "携帯とご自宅のインターネットを同じ会社のグループにまとめると、セット割で安くなることがあります。迷ったら「両方まとめて見直したい」をお選びください。",
+    }],
+  });
+  const planField = (id) => plan.sections.flatMap((sec) => sec.fields).find((f) => f.id === id);
+  const planSection = (title) => plan.sections.find((sec) => sec.title === title);
+  // 「自宅のWi-Fi」の質問は、自宅のインターネットのセクションの先頭へ移す(Wi-Fiだけの相談でも聞くため)
+  const net = planSection("自宅のインターネット");
+  const data = planSection("データ通信の使い方");
+  const homeWifi = planField("home_wifi");
+  data.fields = data.fields.filter((f) => f.id !== "home_wifi");
+  net.fields.unshift(homeWifi);
+  // Wi-Fiの料金を下げるために必要な質問を足す
+  const insertAfter = (sec, id, field) => sec.fields.splice(sec.fields.findIndex((f) => f.id === id) + 1, 0, field);
+  insertAfter(net, "net_fee", {
+    id: "net_years",
+    label: "今のインターネットの契約年数",
+    type: "radio",
+    options: ["1年未満", "1〜2年", "2〜3年", "3年以上", "わからない"],
+    help: "契約によっては、更新月以外に解約すると解約金がかかることがあります。契約年数がわかると、乗り換えに良い時期をお調べできます。",
+    showIf: [{ field: "home_wifi", in: ["はい(光回線)", "はい(ホームルーター・置くだけWi-Fi)"] }],
+  });
+  insertAfter(net, "net_trouble", {
+    id: "net_devices",
+    label: "Wi-Fiにつなぐ機器の数",
+    note: "スマホ・パソコン・テレビ・ゲーム機など",
+    type: "radio",
+    options: ["5台くらいまで", "6〜10台", "11台以上", "わからない"],
+  });
+  insertAfter(net, "housing", {
+    id: "household",
+    label: "一緒に住んでいる人数",
+    type: "radio",
+    options: ["1人", "2人", "3〜4人", "5人以上"],
+  });
+  planField("net_need").required = true;
+  // 「見直したいもの」によって、関係のない質問を出さない
+  const MOBILE_ONLY = ["plan_name", "contract_years", "holder", "family_count", "family_members", "carrier_mail", "device_plan",
+    "monthly_fee", "family_total", "installment", "installment_left", "installment_times", "options",
+    "data_usage", "heavy_use", "throttle", "call_time", "call_style", "signal", "area"];
+  const WIFI_ONLY = ["net_company", "net_fee", "net_years", "net_trouble", "net_devices", "net_need", "housing", "household"];
+  const addCond = (f, cond) => (f.showIf = [].concat(f.showIf || [], cond));
+  MOBILE_ONLY.forEach((id) => addCond(planField(id), { field: "topic", notIn: [TOPIC_WIFI] }));
+  WIFI_ONLY.forEach((id) => addCond(planField(id), { field: "topic", notIn: [TOPIC_MOBILE] }));
+  planField("current_carrier").help = "携帯とご自宅のインターネットを同じグループにすると、セット割で安くなることがあります。" + (planField("current_carrier").help || "");
+
+  // =====================================================
+  // ほかにも相談したいこと(ほかの端末の買い替え・携帯やWi-Fiの料金の見直し)
+  // =====================================================
+  // チェックした内容はお店に伝わり、送信後にそのヒアリングへ続けて進める
+  const WHEN = { label: "検討の時期", type: "radio", options: ["できるだけ早く", "3か月以内", "半年以内", "1年以内", "未定・情報だけほしい"] };
+  const CONSULT = {
+    pc: ["スマートフォンの買い替え", "タブレットの買い替え", "携帯料金の見直し", "自宅のWi-Fi・インターネット料金の見直し", "ご家族の端末の買い替え"],
+    phone: ["パソコンの買い替え", "タブレットの買い替え", "携帯料金の見直し", "自宅のWi-Fi・インターネット料金の見直し", "ご家族の端末の買い替え"],
+    tablet: ["パソコンの買い替え", "スマートフォンの買い替え", "携帯料金の見直し", "自宅のWi-Fi・インターネット料金の見直し", "ご家族の端末の買い替え"],
+    plan: ["パソコンの買い替え", "スマートフォンの買い替え", "タブレットの買い替え", "ご家族の端末の買い替え"],
+  };
+  [pc, phone, tablet, plan].forEach((form) => {
+    const sec = form.sections.find((x) => x.fields.some((f) => f.id === "notes"));
+    const at = sec.fields.findIndex((f) => f.id === "notes");
+    const followUps = {};
+    CONSULT[form.key].forEach((opt) => (followUps[opt] = [Object.assign({}, WHEN)]));
+    sec.fields.splice(at, 0, {
+      id: "other_consult",
+      label: "ほかにも相談したいこと",
+      note: "複数選択可・任意",
+      type: "checkbox",
+      description: "チェックすると、この回答と一緒にお店に伝わります。送信のあと、続けて詳しいヒアリングにも進めます。",
+      options: CONSULT[form.key],
+      followUps,
+    });
+  });
+
   // 機種のシートの文言(料金見直しのシートと書き分けるため)
   [pc, phone, tablet].forEach((form) => {
     form.leadIntro = "最適な機種をご提案・選定するため、";

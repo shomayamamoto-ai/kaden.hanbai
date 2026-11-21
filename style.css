@@ -468,3 +468,17 @@ html.large-text .progress-sub { font-size: 14px; }
 @media print { .check-box { break-inside: avoid; } }
 
 .photo-field .photo-error { margin-top: 8px; }
+
+/* ===== 送信後: ほかのご相談へ続けて進む ===== */
+.next-consult {
+  margin: 28px 0 0; padding: 20px;
+  border: 2px solid var(--accent); border-radius: 12px; background: var(--selected-bg);
+  word-break: keep-all; overflow-wrap: anywhere;
+}
+.done .next-consult .upsell-title { margin: 0 0 8px; font-size: 20px; color: var(--heading); text-wrap: balance; }
+.next-consult-buttons { display: grid; gap: 10px; margin: 12px 0 8px; }
+.next-consult-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-width: 0; text-align: left; }
+.next-consult-btn .icon { font-size: 20px; }
+.next-consult .muted { margin: 4px 0 0; text-align: center; }
+.next-consult-family { margin: 12px 0 0; padding: 10px 12px; font-size: 14px; background: var(--paper); border-radius: 8px; }
+@media print { .next-consult { display: none !important; } }

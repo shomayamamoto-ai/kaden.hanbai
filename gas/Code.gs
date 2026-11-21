@@ -59,6 +59,8 @@ var STAFF = [];
 var FORM_SHEETS = ["パソコン", "スマートフォン", "タブレット", "携帯料金見直し"];
 var ESTIMATE_SHEETS = ["パソコン", "スマートフォン", "タブレット"]; // 見積もりのたたき台を作れるシート
 var FORM_NAMES = { pc: "パソコン", phone: "スマートフォン", tablet: "タブレット", plan: "携帯料金見直し" };
+// メールに出す名前(シート名は FORM_NAMES のまま変えない。変えると新しいシートができてしまうため)
+var FORM_TITLES = { plan: "携帯・Wi-Fi料金見直し" };
 var FIXED_HEADERS = ["受信日時", "受付番号", "対応状況", "担当者", "対応日", "成約金額", "対応メモ", "提案のヒント", "写真", "回答の種類"];
 var DROPOFF_SHEET = "離脱ログ";
 var DROPOFF_HEADERS = ["日時", "シート", "回答の種類", "やめたステップ", "必須の回答数", "必須の総数", "経過秒"];
@@ -231,6 +233,7 @@ function cleanPayload_(data) {
   data.email = cut(data.email, 100);
   if (!FORM_NAMES[data.formType]) data.formType = "pc";
   data.formName = FORM_NAMES[data.formType];
+  data.formTitle = FORM_TITLES[data.formType] || data.formName;
   data.answers = data.answers.map(function (a) {
     return { section: cut(a.section, 50), id: cut(a.id, 50), label: cut(a.label, 80), value: cut(a.value, 1000) };
   });
@@ -413,6 +416,15 @@ function makeHints_(data) {
   var has = function (id, word) { return (a[id] || "").indexOf(word) !== -1; };
   var any = function (id, words) { return words.some(function (w) { return has(id, w); }); };
   var hints = [];
+
+  // ---- ほかの相談(どのシートでも、いちばん上に出す) ----
+  if (a.other_consult) {
+    var when = data.answers
+      .filter(function (x) { return x.id.indexOf("other_consult_") === 0 && x.value; })
+      .map(function (x) { return x.label.replace(":検討の時期", "") + "→" + x.value; });
+    hints.push("【ほかの相談あり】" + a.other_consult + (when.length ? "(検討の時期:" + when.join("、") + ")" : "") +
+      "。今回のご提案とあわせてご案内ください。");
+  }
 
   // ---- パソコン・スマホ共通 ----
   if (any("age", ["60〜70代", "80代以上"]) || has("skill", "苦手")) {
@@ -647,6 +659,22 @@ function makePlanHints_(a, has, any, hints) {
   if (has("device_plan", "機種変更")) {
     hints.push("機種変更もご検討中です。端末代を含めた総額で比べてご提案ください。");
   }
+  // ---- 自宅のWi-Fi・インターネット ----
+  if (has("topic", "Wi-Fi") && !has("topic", "携帯料金")) {
+    hints.push("ご相談は自宅のWi-Fi・インターネットのみです。携帯の会社(" + (a.current_carrier || "未回答") + ")とのセット割で安くなるかも確認してください。");
+  }
+  if (any("net_fee", ["5,000〜6,000円", "6,000円以上"])) {
+    hints.push("自宅のネット代が月" + a.net_fee + "です。携帯とのセット割や、安い会社への乗り換えで下がる可能性があります。");
+  }
+  if (any("net_years", ["2〜3年", "3年以上"]) && (has("net_need", "乗り換え") || has("net_need", "相談"))) {
+    hints.push("今のネット契約が" + a.net_years + "です。乗り換えの前に、契約の更新月・解約金・工事費の残りを確認してください。");
+  }
+  if (has("home_wifi", "ポケットWi-Fi")) {
+    hints.push("自宅のネットがポケットWi-Fiです。自宅中心の使い方なら、光回線やホームルーターのほうが快適・割安になることがあります。");
+  }
+  if (any("net_devices", ["6〜10台", "11台以上"]) || any("household", ["3〜4人", "5人以上"])) {
+    hints.push("つなぐ機器・ご家族が多いご家庭です。速度を重視して、光回線や高性能なWi-Fiルーターをご提案ください。");
+  }
 }
 
 // =====================================================
@@ -670,12 +698,13 @@ function formatBody_(data) {
 
 function notifyOwner_(data, photos) {
   var subject =
-    "【ヒアリングシート受信】" + data.receiptNo + " " + data.formName + " / " + (data.name || "お名前未記入") + " 様";
+    "【ヒアリングシート受信】" + data.receiptNo + " " + data.formTitle + " / " + (data.name || "お名前未記入") + " 様" +
+    (data.answers.some(function (x) { return x.id === "other_consult" && x.value; }) ? "・追加相談あり" : "");
   var hints = data.hints.length
     ? "■ 提案のヒント(自動判定・参考情報)\n" + data.hints.map(function (h) { return "・" + h; }).join("\n") + "\n\n"
     : "";
   var body =
-    data.formName + "のヒアリングシートが届きました。\n" +
+    data.formTitle + "のヒアリングシートが届きました。\n" +
     "受付番号:" + data.receiptNo + "\n" +
     "受信日時:" + Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm") + "\n" +
     "回答の種類:" + (data.mode === "simple" ? "かんたん版" : "しっかり版") + "\n\n" +
@@ -716,7 +745,7 @@ function sendCustomerCopy_(data) {
 
   var body =
     (data.name || "お客様") + " 様\n\n" +
-    "このたびは" + (data.formType === "plan" ? "携帯料金の見直し" : data.formName + "の買い替え") + "について\n" +
+    "このたびは" + (data.formType === "plan" ? "携帯・Wi-Fi料金の見直し" : data.formName + "の買い替え") + "について\n" +
     "ヒアリングシートにご回答いただき、ありがとうございます。\n" +
     "以下の内容で受け付けました。\n\n" +
     "――――――――――――――――\n" +
@@ -736,7 +765,7 @@ function sendCustomerCopy_(data) {
 
   MailApp.sendEmail({
     to: data.email,
-    subject: "【受付完了】" + data.formName + "のヒアリングシート(受付番号 " + data.receiptNo + ")",
+    subject: "【受付完了】" + data.formTitle + "のヒアリングシート(受付番号 " + data.receiptNo + ")",
     body: body,
     name: SHOP_NAME || undefined,
   });
@@ -894,6 +923,9 @@ var SUMMARY_ITEMS = [
   "毎月のデータ使用量",
   "自宅にWi-Fiはありますか?",
   "見直しで重視したいこと",
+  "見直したいもの",
+  "自宅のインターネットの月額料金",
+  "ほかにも相談したいこと",
 ];
 
 function updateSummary() {
