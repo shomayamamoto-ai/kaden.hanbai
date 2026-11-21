@@ -466,3 +466,5 @@ html.large-text .progress-sub { font-size: 14px; }
 .check-box li + li { margin-top: 4px; }
 .check-note { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
 @media print { .check-box { break-inside: avoid; } }
+
+.photo-field .photo-error { margin-top: 8px; }

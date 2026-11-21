@@ -114,16 +114,26 @@
     input.addEventListener("change", async () => {
       const files = Array.from(input.files || []);
       input.value = "";
+      let failed = 0, over = 0;
       for (const file of files) {
-        if (photos.length >= MAX_PHOTOS) break;
-        if (!file.type.startsWith("image/")) continue;
+        if (photos.length >= MAX_PHOTOS) { over += 1; continue; }
+        // iPhone の HEIC 形式は、種類が空で届くことがあるので、拡張子でも写真かどうかを見る
+        const isImage = file.type.startsWith("image/") || /\.(heic|heif|jpe?g|png|webp|gif)$/i.test(file.name || "");
+        if (!isImage) { failed += 1; continue; }
         try {
           photos.push({ dataUrl: await shrinkImage(file) });
         } catch (e) {
-          /* 読み込めない画像は飛ばす */
+          failed += 1;
         }
       }
       renderPhotoList();
+      // 読み込めなかった写真があれば、黙って捨てずに知らせる
+      const msgs = [];
+      if (failed) msgs.push(`${failed}枚の写真を読み込めませんでした。iPhone の写真(HEIC形式)は、このブラウザでは読み込めないことがあります。スクリーンショットを撮って送るか、Safari で開き直してお試しください。`);
+      if (over) msgs.push(`写真は${MAX_PHOTOS}枚までです。${over}枚は追加していません。`);
+      const note = els.form.querySelector(".photo-field .photo-error");
+      if (note) note.remove();
+      if (msgs.length) input.closest(".photo-field").appendChild(el("p", { class: "photo-error field-error", role: "alert", text: msgs.join(" ") }));
       onEdit();
     });
     return el("div", { class: "photo-field" }, [button, input, hint, list]);
@@ -936,8 +946,11 @@
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
   async function confirmDelivered(no) {
-    for (const delay of [1500, 2500, 4000, 6000]) {
-      await wait(delay);
+    // Google の受信プログラムは、しばらく使われていないと起動に10秒以上かかることがあるため、約30秒まで確かめる
+    const delays = [1500, 2500, 4000, 6000, 8000, 8000];
+    for (let i = 0; i < delays.length; i++) {
+      await wait(delays[i]);
+      if (i >= 2) els.sendStatus.textContent = `届いたかどうかを確認しています…(もう少しお待ちください ${i + 1}/${delays.length})`;
       const res = await askStatus(no);
       if (res.kind === "legacy") return { ok: true };
       if (res.kind === "data") {
@@ -955,6 +968,7 @@
     too_fast: "送信が早すぎるため、受け付けられませんでした。もう一度送信してください。",
     unconfirmed: "送信できたかどうかを確認できませんでした。電波の良い場所で、もう一度送信してください(同じ内容が二重に届くことはありません)。",
     network: "通信エラーのため送信できませんでした。電波の良い場所で、もう一度送信してください。",
+    offline: "インターネットにつながっていないようです。電波の良い場所に移動するか、Wi-Fiをご確認のうえ、もう一度送信してください(入力内容は残っています)。",
   };
 
   function resetSendState() {
@@ -1002,6 +1016,12 @@
       checks: lastChecks.map((c) => (c.kind === "info" ? "【お知らせ】" : "【回答の食い違い】") + c.text),
       photos: answers.some((a) => a.id === "photo") ? photos.map((p) => p.dataUrl) : [],
     };
+
+    // 電波がないときは、送信を試さずにすぐ知らせる(入力内容はそのまま)
+    if (navigator.onLine === false) {
+      showSendError("offline");
+      return;
+    }
 
     els.submitBtn.disabled = true;
     els.backBtn.disabled = true;

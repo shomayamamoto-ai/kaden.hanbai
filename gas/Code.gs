@@ -40,7 +40,9 @@ var REMIND_AFTER_HOURS = 24;
 var RETENTION_MONTHS = 12;
 
 // いたずら対策
-var MAX_PER_HOUR = 30; // 1時間に受け付ける回答の上限
+// 1時間に受け付ける回答の上限。交流会・セミナーなどで、QRコードから多くの方が一度に回答しても断らないよう、多めにしています
+// (Gmail の1日の送信上限があるため、無料の Gmail アカウントでは 100 前後までにしてください)
+var MAX_PER_HOUR = 100;
 var MIN_FILL_SECONDS = 5; // これより早く送信されたものは機械による送信とみなす
 
 // 写真を保存する Google ドライブのフォルダ名
@@ -183,6 +185,11 @@ function doGet(e) {
 // いたずら・機械による送信を見分ける(問題なければ空文字を返す)
 function rejectReason_(data) {
   if (!Array.isArray(data.answers) || data.answers.length > 300) return "invalid";
+  var val = function (id) {
+    var hit = data.answers.filter(function (a) { return a && a.id === id; })[0];
+    return hit ? String(hit.value || "").trim() : "";
+  };
+  if (!val("name") || !(isEmail_(val("email") || String(data.email || "")) || /^\d{10,11}$/.test(val("tel").replace(/\D/g, "")))) return "invalid";
   if (Number(data.elapsedSec) < MIN_FILL_SECONDS) return "too_fast";
   if (Number(CacheService.getScriptCache().get(hourKey_()) || 0) >= MAX_PER_HOUR) return "busy";
 
@@ -1180,6 +1187,7 @@ function testSubmit() {
           { section: "その他・特記事項", id: "accessories", label: "一緒に購入したいもの", value: "マウス" },
           { section: "その他・特記事項", id: "accessories_0_0", label: "マウス:接続方法", value: "無線(Bluetooth)" },
           { section: "お客様情報", id: "name", label: "お名前", value: "テスト 太郎" },
+          { section: "お客様情報", id: "tel", label: "電話番号", value: "090-0000-0000" },
         ],
       }),
     },
