@@ -57,6 +57,7 @@
   let current = null; // 表示中のヒアリングシート(パソコン/スマホ)
   let mode = "full"; // "full" = しっかり版、"simple" = かんたん版
   let lastAnswers = null;
+  let lastChecks = [];
   let returnScrollY = 0;
   let photos = []; // { dataUrl }
   let step = 0; // 表示中のステップ(1画面に1セクションずつ表示する)
@@ -370,7 +371,11 @@
         .map((v) => (v === "__other__" ? `その他(${(other && other.value.trim()) || "記入なし"})` : v))
         .join("、");
     }
-    return (els.form.elements[name].value || "").trim();
+    const v = (els.form.elements[name].value || "").trim();
+    // メールアドレス・電話番号は、全角で入力されても半角に直して扱う(チェックと送信の両方で)
+    if (field.type === "email") return toHalfWidth(v).replace(/\s+/g, "");
+    if (field.type === "tel") return toHalfWidth(v).trim();
+    return v;
   }
 
   // 画面に表示するかどうか(かんたん版・答えによる出し分け)
@@ -513,10 +518,23 @@
     if (isChoice(field) && field.other && value.includes("その他(記入なし)")) {
       return "「その他」を選んだ場合は、内容をご記入ください。";
     }
-    if (field.type === "email" && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-      return "メールアドレスの形式が正しくありません。";
+    if (field.type === "email" && value && !isValidEmail(value)) {
+      return "メールアドレスの形式が正しくありません(例:taro@example.com)。";
     }
+    if (field.type === "tel" && value) {
+      const digits = value.replace(/[-\s()]/g, "");
+      if (!/^0\d{9,10}$/.test(digits)) return "電話番号は、0から始まる10桁または11桁の数字で入力してください(例:090-1234-5678)。";
+      if (/^0[789]0/.test(digits) && digits.length !== 11) return "携帯電話の番号は11桁です。番号をご確認ください。";
+    }
+    // お名前に、文字(漢字・かな・英字)が1つもないときは、打ち間違いとみなす
+    if (field.id === "name" && value && !/\p{L}/u.test(value)) return "お名前をご確認ください。";
     return null;
+  }
+
+  // メールアドレスの形式(よくある誤り: 「..」の連続、@の前後の「.」、ドメインの最後が英字2文字以上でない)
+  function isValidEmail(v) {
+    if (!/^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/.test(v)) return false;
+    return !/\.\./.test(v) && !/^\./.test(v) && !/\.@/.test(v) && !/@[.-]/.test(v);
   }
 
   function clearErrors() {
@@ -589,7 +607,7 @@
     "gmial.com": "gmail.com", "gamil.com": "gmail.com", "gmai.com": "gmail.com", "gmail.co": "gmail.com",
     "gmail.con": "gmail.com", "gmail.cm": "gmail.com", "gmali.com": "gmail.com", "gmail.co.jp": "gmail.com",
     "gmail.ne.jp": "gmail.com", "gnail.com": "gmail.com", "g-mail.com": "gmail.com",
-    "yahoo.co.jo": "yahoo.co.jp", "yaho.co.jp": "yahoo.co.jp", "yahooo.co.jp": "yahoo.co.jp", "yahoo.ne.jp": "yahoo.co.jp",
+    "yahoo.co.jo": "yahoo.co.jp", "yaho.co.jp": "yahoo.co.jp", "yahooo.co.jp": "yahoo.co.jp",
     "yahoo.co.pj": "yahoo.co.jp", "yhoo.co.jp": "yahoo.co.jp",
     "icloud.co": "icloud.com", "icloud.con": "icloud.com", "icoud.com": "icloud.com", "iclould.com": "icloud.com",
     "docomo.ne.jo": "docomo.ne.jp", "docomo.co.jp": "docomo.ne.jp", "docmo.ne.jp": "docomo.ne.jp",
@@ -598,6 +616,39 @@
     "hotmial.com": "hotmail.com", "hotmai.com": "hotmail.com", "hotmail.con": "hotmail.com",
     "outlok.com": "outlook.com", "outlook.con": "outlook.com", "outlook.co.jp": "outlook.jp",
   };
+
+  // よく使われるメールアドレスのドメイン(この中のどれかと1〜2文字だけちがうときは、打ち間違いの候補として出す)
+  // ※ yahoo.ne.jp はワイモバイルのメールなので、正しいドメインとして扱う
+  const KNOWN_DOMAINS = [
+    "gmail.com", "yahoo.co.jp", "yahoo.ne.jp", "ymail.ne.jp", "icloud.com", "me.com", "mac.com",
+    "docomo.ne.jp", "ezweb.ne.jp", "au.com", "softbank.ne.jp", "i.softbank.jp", "uqmobile.jp", "rakumail.jp",
+    "outlook.jp", "outlook.com", "hotmail.co.jp", "hotmail.com", "live.jp",
+    "nifty.com", "biglobe.ne.jp", "ocn.ne.jp", "so-net.ne.jp", "jcom.zaq.ne.jp",
+  ];
+
+  // 2つの文字列が何文字ちがうか(編集距離)
+  function editDistance(a, b) {
+    const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+    for (let j = 1; j <= b.length; j++) d[0][j] = j;
+    for (let i = 1; i <= a.length; i++) {
+      for (let j = 1; j <= b.length; j++) {
+        d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      }
+    }
+    return d[a.length][b.length];
+  }
+
+  function suggestDomain(domain) {
+    domain = domain.toLowerCase();
+    if (DOMAIN_TYPOS[domain]) return DOMAIN_TYPOS[domain];
+    if (KNOWN_DOMAINS.includes(domain) || domain.length < 6) return "";
+    let best = "", bestD = 3;
+    KNOWN_DOMAINS.forEach((k) => {
+      const dist = editDistance(domain, k);
+      if (dist < bestD) { best = k; bestD = dist; }
+    });
+    return best;
+  }
 
   // 全角の英数字・記号を半角に直す(メールアドレス・電話番号用)
   function toHalfWidth(text) {
@@ -628,7 +679,7 @@
     const old = td.querySelector(".suggest");
     if (old) old.remove();
     const m = /^([^\s@]+)@([^\s@]+)$/.exec(input.value);
-    const fixedDomain = m && DOMAIN_TYPOS[m[2].toLowerCase()];
+    const fixedDomain = m && suggestDomain(m[2]);
     if (!fixedDomain) return;
     const fixed = `${m[1]}@${fixedDomain}`;
     const btn = el("button", { type: "button", class: "suggest-btn", text: "このアドレスに直す" });
@@ -753,6 +804,28 @@
     return wrap;
   }
 
+  // 回答の食い違い・お知らせ(checks.js)。送信は止めない
+  function runChecks(answers) {
+    const rules = (window.HEARING_CHECKS || {})[current.key] || [];
+    const a = {};
+    answers.forEach((x) => (a[x.id] = x.value));
+    return rules.filter((r) => { try { return r.when(a); } catch (e) { return false; } })
+      .map((r) => ({ kind: r.kind === "info" ? "info" : "warn", text: r.text(a) }));
+  }
+
+  function buildCheckBox(checks) {
+    const warns = checks.filter((c) => c.kind === "warn"), infos = checks.filter((c) => c.kind === "info");
+    return el("div", { class: "check-box", role: "note" }, [
+      warns.length ? el("p", { class: "check-title" }, ["⚠ ご確認ください"]) : null,
+      warns.length ? el("ul", null, warns.map((c) => el("li", { text: c.text }))) : null,
+      infos.length ? el("p", { class: "check-title is-info" }, ["ℹ お知らせ"]) : null,
+      infos.length ? el("ul", null, infos.map((c) => el("li", { text: c.text }))) : null,
+      el("p", { class: "check-note", text: warns.length
+        ? "このままで合っている場合は、そのまま送信して大丈夫です。直す場合は「修正する」を押してください。"
+        : "このまま送信して大丈夫です。" }),
+    ]);
+  }
+
   function goConfirm(e) {
     e.preventDefault();
 
@@ -775,6 +848,8 @@
     receiptNo = makeReceiptNo();
     returnScrollY = window.scrollY;
     els.confirmBody.innerHTML = "";
+    lastChecks = runChecks(answers);
+    if (lastChecks.length) els.confirmBody.appendChild(buildCheckBox(lastChecks));
     els.confirmBody.appendChild(buildAnswerList(answers, true));
     resetSendState();
     showView("confirm");
@@ -819,7 +894,12 @@
   function makeReceiptNo() {
     const d = new Date();
     const pad = (n) => String(n).padStart(2, "0");
-    const rand = String(Math.floor(Math.random() * 10000)).padStart(4, "0");
+    // 見まちがえやすい文字(I・L・O・U)を除いた32種類 × 6文字 = 約10億通り。
+    // 以前の4桁の数字(1万通り)では、同じ日に番号が重なると、別のお客様の回答が「二重送信」として扱われるおそれがあった
+    const CHARS = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+    const bytes = new Uint8Array(6);
+    (window.crypto || window.msCrypto).getRandomValues(bytes);
+    const rand = Array.from(bytes, (b) => CHARS[b % 32]).join("");
     const prefix = { pc: "PC", phone: "SP", tablet: "TB", plan: "MP" }[current.key] || "PC";
     return `${prefix}-${String(d.getFullYear()).slice(2)}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${rand}`;
   }
@@ -919,6 +999,7 @@
       email: pick(answers, "email"),
       turnstileToken,
       answers: answers.map(({ section, id, label, value }) => ({ section, id, label, value })),
+      checks: lastChecks.map((c) => (c.kind === "info" ? "【お知らせ】" : "【回答の食い違い】") + c.text),
       photos: answers.some((a) => a.id === "photo") ? photos.map((p) => p.dataUrl) : [],
     };
 

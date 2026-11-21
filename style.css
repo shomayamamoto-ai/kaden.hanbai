@@ -457,3 +457,12 @@ html.large-text .progress-sub { font-size: 14px; }
 .help-text { text-wrap: balance; }
 
 .agree a { color: var(--accent-dark); font-weight: bold; }
+
+/* ===== 確認画面の「ご確認ください」「お知らせ」 ===== */
+.check-box { margin: 0 0 20px; padding: 14px 18px; border: 1px solid #f0d58a; border-radius: 8px; background: #fff8e1; }
+.check-title { margin: 0 0 6px; font-weight: bold; color: #8a5a00; }
+.check-title.is-info { margin-top: 10px; color: var(--accent-dark); }
+.check-box ul { margin: 0; padding-left: 1.3em; }
+.check-box li + li { margin-top: 4px; }
+.check-note { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+@media print { .check-box { break-inside: avoid; } }

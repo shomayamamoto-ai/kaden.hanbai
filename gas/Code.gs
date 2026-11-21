@@ -77,7 +77,7 @@ function doPost(e) {
   // 途中でやめた方の記録(どのステップでやめたかだけ。回答や個人情報は含まない)
   if (data && data.event === "dropoff") return logDropoff_(data);
 
-  if (!data || !/^(PC|SP|TB|MP)-\d{6}-\d{4}$/.test(String(data.receiptNo || ""))) {
+  if (!data || !/^(PC|SP|TB|MP)-\d{6}-(\d{4}|[0-9A-HJKMNP-TV-Z]{6})$/.test(String(data.receiptNo || ""))) {
     return json_({ ok: false, error: "invalid" });
   }
 
@@ -97,7 +97,7 @@ function doPost(e) {
 
     cleanPayload_(data);
     var photos = savePhotos_(data);
-    data.hints = makeHints_(data);
+    data.hints = duplicateHint_(data).concat(data.checks, makeHints_(data));
     saveToSheet_(data, photos);
 
     // 記録できた時点で「受付完了」とする(メールの失敗では、お客様に再送信させない)
@@ -227,6 +227,21 @@ function cleanPayload_(data) {
   data.answers = data.answers.map(function (a) {
     return { section: cut(a.section, 50), id: cut(a.id, 50), label: cut(a.label, 80), value: cut(a.value, 1000) };
   });
+  // 画面で見つけた回答の食い違い・お知らせ(checks.js)。最大10件・1件200文字まで
+  data.checks = (Array.isArray(data.checks) ? data.checks : []).slice(0, 10).map(function (c) { return cut(c, 200); }).filter(String);
+}
+
+// 同じメールアドレスから、同じシートに30分以内に別の受付番号で届いたら知らせる
+// (確認画面で「修正する」を押して直してから送り直した、などで2件になることがあるため)
+function duplicateHint_(data) {
+  if (!isEmail_(data.email)) return [];
+  var cache = CacheService.getScriptCache();
+  var key = "em_" + data.formType + "_" + data.email.toLowerCase();
+  var prev = cache.get(key);
+  cache.put(key, data.receiptNo, 1800);
+  return prev && prev !== data.receiptNo
+    ? ["【二重申し込みの可能性】30分以内に、同じメールアドレスから受付番号 " + prev + " の回答も届いています。新しいほうが最新の内容です。"]
+    : [];
 }
 
 function setting_(key, fallback) {
@@ -396,7 +411,7 @@ function makeHints_(data) {
   if (any("age", ["60〜70代", "80代以上"]) || has("skill", "苦手")) {
     hints.push("ご高齢の方、または操作に不安がある方です。初期設定・使い方の説明をセットで提案すると安心です。");
   }
-  if (has("current_maker", "持っていない") || has("reason", "初めて購入する")) {
+  if (has("current_maker", "持っていない") || (has("reason", "初めて購入する") && !a.current_maker)) {
     hints.push("初めての購入です。基本的な使い方の説明を含めた提案がおすすめです。");
   }
   if (has("data_transfer", "お願いしたい")) {
@@ -936,7 +951,7 @@ function updateSummary() {
       if (i === -1) return;
       var counts = {};
       body.forEach(function (r) {
-        String(r[i]).split("、").forEach(function (v) {
+        String(r[i]).replace(/その他\([^)]*\)/g, "その他").split("、").forEach(function (v) {
           v = v.trim();
           if (v) counts[v] = (counts[v] || 0) + 1;
         });
@@ -1008,7 +1023,7 @@ function createEstimate() {
   };
 
   var qty = { "1台": 1, "2台": 2, "3台以上": 3 }[get("購入台数")] || 1;
-  var lines = [[sheet.getName() + "本体", qty, ""]];
+  var lines = [[sheet.getName() + "本体", qty, get("購入台数") === "3台以上" ? "3台以上のご希望。台数を確認してください" : ""]];
   if (get("Word・Excel などのOfficeソフト").indexOf("付いているもの") === 0) lines.push(["Microsoft Office", qty, ""]);
   list("一緒に購入したいもの").forEach(function (item) {
     var notes = h
